@@ -43,6 +43,7 @@
     flex items-center justify-center
     text-white text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl
     font-bold
+    cursor-pointer
      hover:shadow-lg active:shadow-inner
     transition-all duration-150 ease-in-out
     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
