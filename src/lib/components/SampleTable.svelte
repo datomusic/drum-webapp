@@ -47,7 +47,7 @@
 <section class="p-4 border bg-white">
     <h2 class="text-xl font-semibold mb-4">{$_('sample_table_title')}</h2>
     <!-- Placeholder for sample data table -->
-    <div class="mt-4 bg-gray-100 p-3">
+    <div class="mt-4 bg-white p-3">
         <!-- Add Track components here -->
         <div class="mt-4 flex flex-col gap-4">
             <Track trackNumber={1} samples={track1Samples} />
