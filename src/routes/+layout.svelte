@@ -42,8 +42,8 @@
 
 <style>
 	header {
-		background-color: #333;
-		color: white;
+		background-color: white; /* Changed from #333 to white */
+		color: #333; /* Changed from white to #333 for contrast */
 		padding: 1rem;
 		text-align: center;
 	}
