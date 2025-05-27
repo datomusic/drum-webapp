@@ -20,5 +20,15 @@
   "device_connection_title": "Apparaatverbinding",
   "device_connection_description": "Verbind en beheer uw drumapparaat.",
   "device_connection_content_placeholder": "Plaatsaanduiding voor apparaatverbindingsstatus en -besturingselementen.",
-  "device_connection_button": "Apparaat verbinden"
+  "device_connection_button": "Apparaat verbinden",
+  "midi_error_message": "Fout: {error}",
+  "midi_requesting_access": "MIDI-toegang aanvragen...",
+  "midi_not_supported": "Web MIDI API wordt niet ondersteund in deze browser of toegang is geweigerd. Gebruik Chrome, Edge of Opera.",
+  "midi_request_access_button": "MIDI-toegang verlenen",
+  "device_connected_status": "Verbonden met: {deviceName}",
+  "device_disconnect_button": "Apparaat loskoppelen",
+  "device_not_connected_status": "Niet verbonden met een apparaat.",
+  "select_midi_device": "Selecteer MIDI-apparaat:",
+  "choose_device_option": "Kies een apparaat...",
+  "no_midi_devices_found": "Geen MIDI-uitvoerapparaten gevonden. Zorg ervoor dat uw apparaat is aangesloten en wordt herkend door uw systeem."
 }

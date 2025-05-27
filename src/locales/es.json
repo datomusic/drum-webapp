@@ -20,5 +20,15 @@
   "device_connection_title": "Conexión del Dispositivo",
   "device_connection_description": "Conecta y gestiona tu dispositivo de batería.",
   "device_connection_content_placeholder": "Marcador de posición para el estado y los controles de conexión del dispositivo.",
-  "device_connection_button": "Conectar Dispositivo"
+  "device_connection_button": "Conectar Dispositivo",
+  "midi_error_message": "Error: {error}",
+  "midi_requesting_access": "Solicitando acceso MIDI...",
+  "midi_not_supported": "La API Web MIDI no es compatible con este navegador o se denegó el acceso. Utilice Chrome, Edge u Opera.",
+  "midi_request_access_button": "Conceder acceso MIDI",
+  "device_connected_status": "Conectado a: {deviceName}",
+  "device_disconnect_button": "Desconectar Dispositivo",
+  "device_not_connected_status": "No conectado a ningún dispositivo.",
+  "select_midi_device": "Seleccionar dispositivo MIDI:",
+  "choose_device_option": "Elegir un dispositivo...",
+  "no_midi_devices_found": "No se encontraron dispositivos de salida MIDI. Asegúrese de que su dispositivo esté conectado y reconocido por su sistema."
 }

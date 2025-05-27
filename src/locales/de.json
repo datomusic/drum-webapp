@@ -20,5 +20,15 @@
   "device_connection_title": "Geräteverbindung",
   "device_connection_description": "Verbinden und verwalten Sie Ihr Drum-Gerät.",
   "device_connection_content_placeholder": "Platzhalter für den Status und die Steuerelemente der Geräteverbindung.",
-  "device_connection_button": "Gerät verbinden"
+  "device_connection_button": "Gerät verbinden",
+  "midi_error_message": "Fehler: {error}",
+  "midi_requesting_access": "MIDI-Zugriff anfordern...",
+  "midi_not_supported": "Die Web-MIDI-API wird in diesem Browser nicht unterstützt oder der Zugriff wurde verweigert. Bitte verwenden Sie Chrome, Edge oder Opera.",
+  "midi_request_access_button": "MIDI-Zugriff gewähren",
+  "device_connected_status": "Verbunden mit: {deviceName}",
+  "device_disconnect_button": "Gerät trennen",
+  "device_not_connected_status": "Nicht mit einem Gerät verbunden.",
+  "select_midi_device": "MIDI-Gerät auswählen:",
+  "choose_device_option": "Gerät auswählen...",
+  "no_midi_devices_found": "Keine MIDI-Ausgabegeräte gefunden. Stellen Sie sicher, dass Ihr Gerät angeschlossen und von Ihrem System erkannt wird."
 }
