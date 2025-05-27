@@ -9,9 +9,12 @@
     <!-- Placeholder for sample data table -->
     <div class="mt-4 bg-gray-100 p-3 rounded">
         <p class="text-gray-600">{$_('sample_table_content_placeholder')}</p>
-        <!-- Add a Track component here -->
-        <div class="mt-4">
+        <!-- Add Track components here -->
+        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
             <Track trackNumber={1} />
+            <Track trackNumber={2} />
+            <Track trackNumber={3} />
+            <Track trackNumber={4} />
         </div>
     </div>
 </section>
