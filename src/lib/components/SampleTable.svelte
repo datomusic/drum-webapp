@@ -42,6 +42,14 @@
     const track2Samples = generateTrackSamples(23, 16, greenHues);
     const track3Samples = generateTrackSamples(15, 8, blueHues);
     const track4Samples = generateTrackSamples(7, 0, redHues);
+
+    // Group tracks with their samples for easier iteration
+    const tracks = [
+        { samples: track1Samples },
+        { samples: track2Samples },
+        { samples: track3Samples },
+        { samples: track4Samples },
+    ];
 </script>
 
 <section class="p-4 bg-white">
@@ -50,10 +58,9 @@
     <div class="mt-4 bg-white p-3">
         <!-- Add Track components here -->
         <div class="mt-4 flex flex-col gap-4">
-            <Track samples={track1Samples} />
-            <Track samples={track2Samples} />
-            <Track samples={track3Samples} />
-            <Track samples={track4Samples} />
+            {#each tracks as track, i (i)}
+                <Track samples={track.samples} trackIndex={i} /> <!-- Pass the track index -->
+            {/each}
         </div>
     </div>
 </section>
