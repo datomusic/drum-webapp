@@ -45,15 +45,15 @@
 </script>
 
 <section class="p-4 border bg-white">
-    <h2 class="text-xl font-semibold mb-4">{$_('sample_table_title')}</h2>
+    <!-- Removed: <h2 class="text-xl font-semibold mb-4">{$_('sample_table_title')}</h2> -->
     <!-- Placeholder for sample data table -->
     <div class="mt-4 bg-white p-3">
         <!-- Add Track components here -->
         <div class="mt-4 flex flex-col gap-4">
-            <Track trackNumber={1} samples={track1Samples} />
-            <Track trackNumber={2} samples={track2Samples} />
-            <Track trackNumber={3} samples={track3Samples} />
-            <Track trackNumber={4} samples={track4Samples} />
+            <Track samples={track1Samples} />
+            <Track samples={track2Samples} />
+            <Track samples={track3Samples} />
+            <Track samples={track4Samples} />
         </div>
     </div>
 </section>
