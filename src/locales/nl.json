@@ -1,0 +1,13 @@
+{
+  "welcome": "Welkom bij SvelteKit!",
+  "docs_link": "Bezoek {link} om de documentatie te lezen",
+  "docs_text": "svelte.dev/docs/kit",
+  "switch_to_en": "Naar Engels wisselen",
+  "switch_to_es": "Naar Spaans wisselen",
+  "switch_to_de": "Naar Duits wisselen",
+  "switch_to_nl": "Naar Nederlands wisselen",
+  "current_locale": "Huidige taal: {locale}",
+  "app_title": "Mijn Geweldige App",
+  "app_name": "Drum Webapp",
+  "greeting_message": "Dit is een meertalige applicatie."
+}

@@ -4,5 +4,10 @@
   "docs_text": "svelte.dev/docs/kit",
   "switch_to_en": "Cambiar a inglés",
   "switch_to_es": "Cambiar a español",
-  "current_locale": "Idioma actual: {locale}"
+  "switch_to_de": "Cambiar a alemán",
+  "switch_to_nl": "Cambiar a holandés",
+  "current_locale": "Idioma actual: {locale}",
+  "app_title": "Mi Impresionante Aplicación",
+  "app_name": "Aplicación Web de Batería",
+  "greeting_message": "Esta es una aplicación multilingüe."
 }
