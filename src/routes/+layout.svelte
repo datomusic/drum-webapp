@@ -9,7 +9,7 @@
 	// Define available locales
 	const locales = [
 		{ code: 'en', name: 'English' },
-		{ code: 'es', name: 'Español' },
+		// Spanish locale removed
 		{ code: 'de', name: 'Deutsch' },
 		{ code: 'nl', name: 'Nederlands' }
 	];

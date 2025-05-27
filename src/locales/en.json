@@ -3,7 +3,6 @@
   "docs_link": "Learn more here: {link}",
   "docs_text": "svelte.dev/docs/kit",
   "switch_to_en": "Switch to English",
-  "switch_to_es": "Switch to Spanish",
   "switch_to_de": "Switch to German",
   "switch_to_nl": "Switch to Dutch",
   "current_locale": "Language: {locale}",

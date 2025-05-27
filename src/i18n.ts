@@ -2,7 +2,7 @@ import { register, init, getLocaleFromNavigator } from 'svelte-i18n';
 
 // Register translation files for different locales
 register('en', () => import('./locales/en.json'));
-register('es', () => import('./locales/es.json'));
+// Spanish locale removed
 register('de', () => import('./locales/de.json')); // Register German locale
 register('nl', () => import('./locales/nl.json')); // Register Dutch locale
 
