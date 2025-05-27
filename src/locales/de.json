@@ -12,7 +12,6 @@
   "firmware_update_description": "Mache dein Gerät besser mit Updates.",
   "firmware_update_content_placeholder": "Update-Infos werden hier angezeigt.",
   "firmware_update_button": "Nach Updates suchen",
-  "device_connection_title": "Verbinde dein DRUM",
   "device_connection_description": "Schließe dein Dato DRUM an, um zu starten.",
   "device_connection_content_placeholder": "Verbindungsstatus wird hier angezeigt.",
   "device_connection_button": "Verbinden",

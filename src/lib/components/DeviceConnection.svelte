@@ -51,7 +51,7 @@
 </script>
 
 <section class="p-4 border   bg-white">
-    <h2 class="text-xl font-semibold mb-4">{$_('device_connection_title')}</h2>
+    <!-- Removed: <h2 class="text-xl font-semibold mb-4">{$_('device_connection_title')}</h2> -->
     <p class="text-gray-700">{$_('device_connection_description')}</p>
 
     <div class="mt-4 bg-gray-100 p-3 rounded">
