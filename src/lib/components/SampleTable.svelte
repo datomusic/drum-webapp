@@ -33,7 +33,7 @@
     <p class="text-gray-700">{$_('sample_table_description')}</p>
     <!-- Placeholder for sample data table -->
     <div class="mt-4 bg-gray-100 p-3">
-        <p class="text-gray-600">{$_('sample_table_content_placeholder')}</p>
+        <!-- Removed: <p class="text-gray-600">{$_('sample_table_content_placeholder')}</p> -->
         <!-- Add Track components here -->
         <div class="mt-4 flex flex-col gap-4">
             <Track trackNumber={1} samples={track1Samples} />
