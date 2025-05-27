@@ -9,5 +9,16 @@
   "current_locale": "Aktuelle Sprache: {locale}",
   "app_title": "Meine Tolle App",
   "app_name": "Drum Webapp",
-  "greeting_message": "Dies ist eine mehrsprachige Anwendung."
+  "greeting_message": "Dies ist eine mehrsprachige Anwendung.",
+  "sample_table_title": "Beispieldatentabelle",
+  "sample_table_description": "Dieser Abschnitt zeigt und verwaltet Beispieldaten.",
+  "sample_table_content_placeholder": "Platzhalter für den Inhalt der Beispieldatentabelle.",
+  "firmware_update_title": "Firmware-Update",
+  "firmware_update_description": "Geräte-Firmware verwalten und aktualisieren.",
+  "firmware_update_content_placeholder": "Platzhalter für Firmware-Update-Steuerelemente und -Status.",
+  "firmware_update_button": "Nach Updates suchen",
+  "device_connection_title": "Geräteverbindung",
+  "device_connection_description": "Verbinden und verwalten Sie Ihr Drum-Gerät.",
+  "device_connection_content_placeholder": "Platzhalter für den Status und die Steuerelemente der Geräteverbindung.",
+  "device_connection_button": "Gerät verbinden"
 }

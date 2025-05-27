@@ -9,5 +9,16 @@
   "current_locale": "Current locale: {locale}",
   "app_title": "My Awesome App",
   "app_name": "Drum Webapp",
-  "greeting_message": "This is a multilingual application."
+  "greeting_message": "This is a multilingual application.",
+  "sample_table_title": "Sample Data Table",
+  "sample_table_description": "This section will display and manage sample data.",
+  "sample_table_content_placeholder": "Placeholder for sample data table content.",
+  "firmware_update_title": "Firmware Update",
+  "firmware_update_description": "Manage and update device firmware.",
+  "firmware_update_content_placeholder": "Placeholder for firmware update controls and status.",
+  "firmware_update_button": "Check for Updates",
+  "device_connection_title": "Device Connection",
+  "device_connection_description": "Connect and manage your drum device.",
+  "device_connection_content_placeholder": "Placeholder for device connection status and controls.",
+  "device_connection_button": "Connect Device"
 }

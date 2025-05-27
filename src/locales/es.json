@@ -9,5 +9,16 @@
   "current_locale": "Idioma actual: {locale}",
   "app_title": "Mi Impresionante Aplicación",
   "app_name": "Aplicación Web de Batería",
-  "greeting_message": "Esta es una aplicación multilingüe."
+  "greeting_message": "Esta es una aplicación multilingüe.",
+  "sample_table_title": "Tabla de Datos de Muestra",
+  "sample_table_description": "Esta sección mostrará y gestionará los datos de muestra.",
+  "sample_table_content_placeholder": "Marcador de posición para el contenido de la tabla de datos de muestra.",
+  "firmware_update_title": "Actualización de Firmware",
+  "firmware_update_description": "Gestionar y actualizar el firmware del dispositivo.",
+  "firmware_update_content_placeholder": "Marcador de posición para los controles y el estado de la actualización de firmware.",
+  "firmware_update_button": "Buscar actualizaciones",
+  "device_connection_title": "Conexión del Dispositivo",
+  "device_connection_description": "Conecta y gestiona tu dispositivo de batería.",
+  "device_connection_content_placeholder": "Marcador de posición para el estado y los controles de conexión del dispositivo.",
+  "device_connection_button": "Conectar Dispositivo"
 }

@@ -9,5 +9,16 @@
   "current_locale": "Huidige taal: {locale}",
   "app_title": "Mijn Geweldige App",
   "app_name": "Drum Webapp",
-  "greeting_message": "Dit is een meertalige applicatie."
+  "greeting_message": "Dit is een meertalige applicatie.",
+  "sample_table_title": "Voorbeeldgegevenstabel",
+  "sample_table_description": "Deze sectie toont en beheert voorbeeldgegevens.",
+  "sample_table_content_placeholder": "Plaatsaanduiding voor inhoud van voorbeeldgegevenstabel.",
+  "firmware_update_title": "Firmware-update",
+  "firmware_update_description": "Beheer en update apparaatfirmware.",
+  "firmware_update_content_placeholder": "Plaatsaanduiding voor firmware-updatebesturingselementen en -status.",
+  "firmware_update_button": "Controleren op updates",
+  "device_connection_title": "Apparaatverbinding",
+  "device_connection_description": "Verbind en beheer uw drumapparaat.",
+  "device_connection_content_placeholder": "Plaatsaanduiding voor apparaatverbindingsstatus en -besturingselementen.",
+  "device_connection_button": "Apparaat verbinden"
 }
