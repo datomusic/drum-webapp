@@ -6,8 +6,6 @@
 </script>
 
 <div class="space-y-8">
-    <p class="text-gray-700">{$_('greeting_message')}</p>
-
     <DeviceConnection />
     <SampleTable />
     <FirmwareUpdate />
