@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
-	import '../i18n'; // Import the i18n setup file to initialize svelte-i18n
+	// The i18n setup is now handled by src/routes/+layout.ts, so we remove the direct import here.
+	// import '../i18n'; 
 	import { _, locale } from 'svelte-i18n'; // Import _ and locale for translation and language switching
 	
 	let { children } = $props();
