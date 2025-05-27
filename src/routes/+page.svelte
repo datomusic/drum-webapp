@@ -8,5 +8,4 @@
 <div class="space-y-8">
     <DeviceConnection />
     <SampleTable />
-    <FirmwareUpdate />
 </div>

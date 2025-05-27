@@ -4,6 +4,9 @@ export default {
     './src/**/*.{html,js,svelte,ts}',
   ],
   theme: {
+		fontFamily: {
+			sans: ["'Inter'", 'sans-serif']
+		},
     extend: {},
   },
   plugins: [],

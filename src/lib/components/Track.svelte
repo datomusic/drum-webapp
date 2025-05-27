@@ -25,7 +25,7 @@
         <SampleButton
           color={sample.color}
           midiNoteNumber={sample.midiNoteNumber}
-          on:select={handleSampleSelect} <!-- Listen for the custom 'select' event -->
+          on:select={handleSampleSelect}
         />
       </div>
     {/each}

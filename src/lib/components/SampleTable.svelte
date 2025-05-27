@@ -44,7 +44,7 @@
     const track4Samples = generateTrackSamples(7, 0, redHues);
 </script>
 
-<section class="p-4 border bg-white">
+<section class="p-4 bg-white">
     <!-- Removed: <h2 class="text-xl font-semibold mb-4">{$_('sample_table_title')}</h2> -->
     <!-- Placeholder for sample data table -->
     <div class="mt-4 bg-white p-3">

@@ -22,7 +22,7 @@
     transition-all duration-150 ease-in-out
     cursor-pointer
 "
-style="{backgroundStyle}" <!-- Apply dynamic background style -->
+style="{backgroundStyle}"
 >
   <img src="/pad_hat.svg" alt="Voice Settings" class="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12" />
 </div>

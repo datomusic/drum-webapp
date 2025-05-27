@@ -2,9 +2,9 @@
     import { _ } from 'svelte-i18n';
 </script>
 
-<section class="p-4 border   bg-white">
+<section class="p-4 bg-white">
     <h2 class="text-xl font-semibold mb-4">{$_('firmware_update_title')}</h2>
-    <p class="text-gray-700">{$_('firmware_update_description')}</p>
+    <p class="text-gray-700 font-mono">{$_('firmware_update_description')}</p>
     <!-- Placeholder for firmware update controls -->
     <div class="mt-4 bg-gray-100 p-3 rounded">
         <p class="text-gray-600">{$_('firmware_update_content_placeholder')}</p>

@@ -21,7 +21,7 @@
 				id="language-select"
 				bind:value={$locale}
 				class="
-					p-1.5 rounded-md border-none bg-gray-200 text-white cursor-pointer
+					p-1.5 rounded-md border-none bg-gray-200 text-black cursor-pointer uppercase
 					focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white
 				"
 			>
