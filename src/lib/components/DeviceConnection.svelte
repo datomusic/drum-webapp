@@ -2,8 +2,25 @@
     import { _ } from 'svelte-i18n';
     import { midiStore } from '$lib/stores/midi';
     import { onMount } from 'svelte';
+    import { derived } from 'svelte/store'; // Import derived for reactive filtering
 
     let selectedDeviceId: string | undefined;
+
+    // Define the filter array for Dato DRUM devices
+    // A device will match if its name contains any of these strings (case-insensitive)
+    const DRUM_DEVICE_FILTERS = ['DRUM', 'Dato DRUM', 'Pico']; 
+
+    // Derived store to hold the filtered list of MIDI outputs
+    const filteredOutputs = derived(midiStore, ($midiStore) => {
+        if (!$midiStore.outputs) {
+            return [];
+        }
+        const lowerCaseFilters = DRUM_DEVICE_FILTERS.map(f => f.toLowerCase());
+        return Array.from($midiStore.outputs.values()).filter(output => {
+            const outputNameLower = output.name?.toLowerCase();
+            return outputNameLower && lowerCaseFilters.some(filter => outputNameLower.includes(filter));
+        });
+    });
 
     // Automatically request MIDI access when the component mounts
     onMount(() => {
@@ -56,7 +73,7 @@
             </button>
         {:else}
             <p class="text-gray-600">{$_('device_not_connected_status')}</p>
-            {#if $midiStore.outputs && $midiStore.outputs.size > 0}
+            {#if $filteredOutputs.length > 0}
                 <div class="mt-2">
                     <label for="midi-device-select" class="block text-sm font-medium text-gray-700">{$_('select_midi_device')}</label>
                     <select
@@ -65,7 +82,7 @@
                         bind:value={selectedDeviceId}
                     >
                         <option value="" disabled>{$_('choose_device_option')}</option>
-                        {#each Array.from($midiStore.outputs.values()) as output}
+                        {#each $filteredOutputs as output}
                             <option value={output.id}>{output.name}</option>
                         {/each}
                     </select>
