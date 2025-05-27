@@ -1,16 +1,22 @@
 <script lang="ts">
-  // This is an empty Voice component as requested.
-  // Future functionality related to individual sample voice settings will go here.
+  // This component represents the "Voice" settings for a sample slot.
+  // It displays an icon indicating its purpose.
 </script>
 
-<div class="voice-component">
-  <!-- Content for the Voice component will be added here later -->
-   Voice
+<div class="
+    voice-component
+    w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 xl:w-20 xl:h-20
+    rounded-lg
+    bg-gray-200
+    flex items-center justify-center
+    shadow-sm
+    hover:shadow-md
+    transition-all duration-150 ease-in-out
+    cursor-pointer
+">
+  <img src="/pad_hat.svg" alt="Voice Settings" class="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12" />
 </div>
 
 <style>
-  /* Basic styling for the Voice component container if needed */
-  .voice-component {
-    /* Add any default styles here */
-  }
+  /* No specific styles needed here, Tailwind handles most of it. */
 </style>
