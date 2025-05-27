@@ -15,10 +15,10 @@
     ];
 
     // Generate sample data for all 32 slots (4 tracks * 8 samples)
-    // MIDI notes will be sequential starting from 0
+    // MIDI notes will be sequential starting from 31 down to 0
     const allSamplesData = Array.from({ length: 32 }, (_, i) => ({
         color: baseColors[i % baseColors.length], // Cycle through base colors
-        midiNoteNumber: i, // Sequential MIDI notes from 0 to 31
+        midiNoteNumber: 31 - i, // Sequential MIDI notes from 31 down to 0
     }));
 
     // Divide the allSamplesData into 4 arrays for each track
