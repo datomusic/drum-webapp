@@ -1,6 +1,7 @@
 <script lang="ts">
   import { midiStore } from '$lib/stores/midi';
   import { get } from 'svelte/store';
+  import { createEventDispatcher } from 'svelte'; // Import createEventDispatcher
 
   /**
    * The color of the button, e.g., '#FF0000' or 'red'.
@@ -15,6 +16,8 @@
   const NOTE_ON_VELOCITY = 127; // Max velocity
   const NOTE_OFF_VELOCITY = 0; // Velocity for note off (often ignored, but good practice)
   const NOTE_DURATION_MS = 100; // Duration before sending Note Off
+
+  const dispatch = createEventDispatcher(); // Initialize dispatcher
 
   function playMidiNote() {
     const { selectedOutput } = get(midiStore);
@@ -33,6 +36,9 @@
     } else {
       console.warn('No MIDI output selected. Cannot play note.');
     }
+
+    // Dispatch a custom event with the button's color
+    dispatch('select', { color: color });
   }
 </script>
 
