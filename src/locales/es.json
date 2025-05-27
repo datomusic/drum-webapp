@@ -1,0 +1,8 @@
+{
+  "welcome": "¡Bienvenido a SvelteKit!",
+  "docs_link": "Visita {link} para leer la documentación",
+  "docs_text": "svelte.dev/docs/kit",
+  "switch_to_en": "Cambiar a inglés",
+  "switch_to_es": "Cambiar a español",
+  "current_locale": "Idioma actual: {locale}"
+}
