@@ -1,29 +1,28 @@
 <script lang="ts">
 	import '../app.css';
-	// The i18n setup is now handled by src/routes/+layout.ts, so we remove the direct import here.
-	// import '../i18n'; 
-	import { _, locale } from 'svelte-i18n'; // Import _ and locale for translation and language switching
+	import { _, locale } from 'svelte-i18n';
 	
 	let { children } = $props();
 
-	// Define available locales
 	const locales = [
 		{ code: 'en', name: 'English' },
-		// Spanish locale removed
 		{ code: 'de', name: 'Deutsch' },
 		{ code: 'nl', name: 'Nederlands' }
 	];
-
-	// Removed: Reactive variable to get the display name of the current locale
-	// Removed: $: currentLanguageName = locales.find(l => l.code === $locale)?.name || $locale;
 </script>
 
-<header>
-	<nav>
-		<h1>{$_('app_title')}</h1>
-		<div class="language-switcher">
-			<!-- Removed: <label for="language-select">{$_('current_locale')}</label> -->
-			<select id="language-select" bind:value={$locale}>
+<header class="bg-white text-gray-800 p-4 text-center">
+	<nav class="flex justify-between items-center max-w-screen-lg mx-auto">
+		<h1 class="m-0">{$_('app_title')}</h1>
+		<div class="flex items-center gap-2">
+			<select
+				id="language-select"
+				bind:value={$locale}
+				class="
+					p-1.5 rounded-md border-none bg-gray-700 text-white cursor-pointer
+					focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white
+				"
+			>
 				{#each locales as lang}
 					<option value={lang.code}>{lang.name}</option>
 				{/each}
@@ -32,62 +31,14 @@
 	</nav>
 </header>
 
-<main>
+<main class="p-4 min-h-[calc(100vh-120px)]">
 	{@render children()}
 </main>
 
-<footer>
+<footer class="bg-gray-200 p-4 text-center text-gray-600">
 	<p>&copy; {new Date().getFullYear()} {$_('app_name')}</p>
 </footer>
 
 <style>
-	header {
-		background-color: white; /* Changed from #333 to white */
-		color: #333; /* Changed from white to #333 for contrast */
-		padding: 1rem;
-		text-align: center;
-	}
-
-	nav {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		max-width: 960px;
-		margin: 0 auto;
-	}
-
-	nav h1 {
-		margin: 0;
-	}
-
-	.language-switcher {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.language-switcher label {
-		font-size: 0.9em;
-	}
-
-	.language-switcher select {
-		padding: 0.3rem 0.5rem;
-		border-radius: 4px;
-		border: none;
-		background-color: #555;
-		color: white;
-		cursor: pointer;
-	}
-
-	main {
-		padding: 1rem;
-		min-height: calc(100vh - 120px); /* Adjust based on header/footer height */
-	}
-
-	footer {
-		background-color: #eee;
-		padding: 1rem;
-		text-align: center;
-		color: #555;
-	}
+	/* No custom styles needed here anymore for the language switcher */
 </style>
