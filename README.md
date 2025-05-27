@@ -1,31 +1,55 @@
-# sv
+# Dato DRUM Web App
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+This is a companion web application for the Dato DRUM, a sample-based drum machine. It is designed to facilitate firmware updates, sample management, and potentially advanced settings by connecting the Dato DRUM to a Web USB/Web MIDI enabled browser.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+*   **Device Connection**: Checks for Web USB/Web MIDI support and guides the user through connecting the Dato DRUM.
+*   **Firmware Update**: Allows users to update the Dato DRUM's firmware by fetching the latest `.UF2` file from a server.
+*   **Sample Management**:
+    *   Displays 32 sample slots with editable names, MIDI note numbers, and assigned colors.
+    *   Supports drag & drop of `.wav` (and other browser-decodable) audio files.
+    *   Automatically converts audio to 44.1kHz, 16-bit, mono WAV, and truncates to 1 second.
+    *   Enables recording new 1-second samples via the microphone.
+    *   Transmits samples to the device via MIDI SysEx.
+*   **Backup & Restore**: Allows backing up all 32 samples and their metadata to a single `.zip` file.
+*   **Factory Reset**: Resets all samples on the device to embedded factory defaults.
+*   **Internationalization**: Supports English, German, and Dutch languages with simple, child-friendly text.
 
-```bash
-# create a new project in the current directory
-npx sv create
+## Technology Stack
 
-# create a new project in my-app
-npx sv create my-app
-```
+This project is built with:
 
-## Developing
+*   **Framework**: SvelteKit
+*   **Styling**: Tailwind CSS
+*   **Internationalization**: `svelte-i18n`
+*   **Device Communication**: Web MIDI API (with SYSEX support)
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Getting Started
 
-```bash
-npm run dev
+### Development
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+To set up the project locally:
 
-## Building
+1.  **Clone the repository**:
+    ```bash
+    git clone [your-repo-url]
+    cd dato-drum-web-app
+    ```
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    # or pnpm install
+    # or yarn
+    ```
+3.  **Start the development server**:
+    ```bash
+    npm run dev
+    # or start the server and open the app in a new browser tab
+    npm run dev -- --open
+    ```
+
+### Building
 
 To create a production version of your app:
 
