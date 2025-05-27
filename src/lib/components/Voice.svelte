@@ -5,6 +5,7 @@
 
 <div class="voice-component">
   <!-- Content for the Voice component will be added here later -->
+   Voice
 </div>
 
 <style>
