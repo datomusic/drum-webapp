@@ -13,7 +13,10 @@
 
 <header class="bg-white text-gray-800 p-4 text-center">
 	<nav class="flex justify-between items-center max-w-screen-lg mx-auto">
-		<h1 class="m-0">{$_('app_title')}</h1>
+		<div class="flex items-center gap-2">
+			<img src="/dato_logo.svg" alt="Dato Logo" class="h-8 sm:h-10" />
+			<img src="/drum_logo.svg" alt="DRUM Logo" class="h-8 sm:h-10" />
+		</div>
 		<div class="flex items-center gap-2">
 			<select
 				id="language-select"
