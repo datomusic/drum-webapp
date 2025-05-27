@@ -2,6 +2,8 @@
 
 This is a companion web application for the Dato DRUM, a sample-based drum machine. It is designed to facilitate firmware updates, sample management, and potentially advanced settings by connecting the Dato DRUM to a Web USB/Web MIDI enabled browser.
 
+It is very much a work in progress so the features below might or might not be present.
+
 ## Features
 
 *   **Device Connection**: Checks for Web USB/Web MIDI support and guides the user through connecting the Dato DRUM.
@@ -33,8 +35,8 @@ To set up the project locally:
 
 1.  **Clone the repository**:
     ```bash
-    git clone [your-repo-url]
-    cd dato-drum-web-app
+    git clone git@github.com:datomusic/drum-webapp.git
+    cd drum-webapp
     ```
 2.  **Install dependencies**:
     ```bash
