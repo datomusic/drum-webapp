@@ -20,7 +20,7 @@
   ];
 </script>
 
-<div class="flex flex-col items-center p-4 bg-gray-800 rounded-lg shadow-lg">
+<div class="flex flex-col items-center p-4 bg-gray-800  shadow-lg">
   <h3 class="text-white text-xl font-semibold mb-4">Track {trackNumber}</h3>
   <div class="grid grid-cols-4 gap-4 sm:grid-cols-4 md:grid-cols-8">
     {#each sampleButtonsData as sample, i (i)}

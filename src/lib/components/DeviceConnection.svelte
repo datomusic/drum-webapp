@@ -50,7 +50,7 @@
     }
 </script>
 
-<section class="p-4 border rounded-lg shadow-md bg-white">
+<section class="p-4 border   bg-white">
     <h2 class="text-xl font-semibold mb-4">{$_('device_connection_title')}</h2>
     <p class="text-gray-700">{$_('device_connection_description')}</p>
 
