@@ -13,13 +13,16 @@
 		{ code: 'de', name: 'Deutsch' },
 		{ code: 'nl', name: 'Nederlands' }
 	];
+
+	// Removed: Reactive variable to get the display name of the current locale
+	// Removed: $: currentLanguageName = locales.find(l => l.code === $locale)?.name || $locale;
 </script>
 
 <header>
 	<nav>
 		<h1>{$_('app_title')}</h1>
 		<div class="language-switcher">
-			<label for="language-select">{$_('current_locale', { values: { locale: $locale } })}</label>
+			<label for="language-select">{$_('current_locale')}</label>
 			<select id="language-select" bind:value={$locale}>
 				{#each locales as lang}
 					<option value={lang.code}>{lang.name}</option>
