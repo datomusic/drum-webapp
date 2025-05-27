@@ -22,7 +22,7 @@
 	<nav>
 		<h1>{$_('app_title')}</h1>
 		<div class="language-switcher">
-			<label for="language-select">{$_('current_locale')}</label>
+			<!-- Removed: <label for="language-select">{$_('current_locale')}</label> -->
 			<select id="language-select" bind:value={$locale}>
 				{#each locales as lang}
 					<option value={lang.code}>{lang.name}</option>
