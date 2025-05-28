@@ -52,12 +52,11 @@
     ];
 </script>
 
-<section class="p-4 bg-white">
-    <!-- Removed: <h2 class="text-xl font-semibold mb-4">{$_('sample_table_title')}</h2> -->
+<section class="w-full bg-white py-4"> <!-- Removed p-4, added py-4 for vertical padding -->
     <!-- Placeholder for sample data table -->
-    <div class="mt-4 bg-white p-3">
-        <!-- Add Track components here -->
-        <div class="mt-4 flex flex-col gap-4">
+    <div class="max-w-screen-lg mx-auto px-4"> <!-- Added max-w-screen-lg, mx-auto, and px-4 for horizontal padding -->
+        <!-- Removed: <h2 class="text-xl font-semibold mb-4">{$_('sample_table_title')}</h2> -->
+        <div class="flex flex-col gap-4">
             {#each tracks as track, i (i)}
                 <Track samples={track.samples} trackIndex={i} /> <!-- Pass the track index -->
             {/each}
