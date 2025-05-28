@@ -16,7 +16,7 @@
   "midi_requesting_access": "Um Erlaubnis fragen...",
   "midi_not_supported": "Dein Browser kann keine Verbindung zum DRUM herstellen. Versuche es mit Chrome, Edge oder Opera.",
   "midi_request_access_button": "Verbindung erlauben",
-  "device_connected_status": "Verbunden {deviceName}",
+  "device_connected_status": "Verbunden mit {deviceName}",
   "device_disconnect_button": "Trennen",
   "device_not_connected_status": "Kein Dato DRUM verbunden.",
   "select_midi_device": "Wähle dein MIDI-Anschluss:",
