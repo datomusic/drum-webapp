@@ -58,7 +58,7 @@ async function requestMidiAccess() {
             throw new Error('Web MIDI API is not supported in this browser.');
         }
 
-        const midiAccess = await navigator.requestMIDIAAccess({ sysex: true }); // Request SYSEX access for firmware updates
+        const midiAccess = await navigator.requestMIDIAccess({ sysex: true }); // Request SYSEX access for firmware updates
         midiAccess.onstatechange = (event) => {
             console.log('MIDI state change:', event.port.name, event.port.state);
             updateMidiDevices(midiAccess); // Re-update devices on state change
