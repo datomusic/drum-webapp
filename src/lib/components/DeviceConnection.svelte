@@ -97,7 +97,7 @@
                 {$_('midi_request_access_button')}
             </button>
         {:else if $midiStore.isConnected}
-            <p class="text-green-600">
+            <p>
                 {$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } })}
                 {#if $midiStore.firmwareVersion}
                     ({$_('firmware_version_label', { values: { version: $midiStore.firmwareVersion } })}){/if}
@@ -106,7 +106,6 @@
                 </button>
             </p>
         {:else}
-            <p>{$_('device_not_connected_status')}</p>
             {#if $filteredOutputs.length > 0}
                 <div class="mt-2">
                     <label for="midi-device-select">{$_('select_midi_device')}</label>

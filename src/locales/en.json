@@ -16,11 +16,11 @@
   "midi_requesting_access": "Asking for permission...",
   "midi_not_supported": "Your browser can't connect to the DRUM. Try Chrome, Edge, or Opera.",
   "midi_request_access_button": "Allow Connection",
-  "device_connected_status": "Connected! ({deviceName})",
+  "device_connected_status": "Connected to {deviceName}",
   "device_disconnect_button": "Disconnect",
   "device_not_connected_status": "No Dato DRUM connected.",
   "select_midi_device": "Choose your MIDI port:",
   "choose_device_option": "Select one...",
   "no_midi_devices_found": "Plug in your Dato DRUM to start.",
-  "firmware_version_label": "Firmware: {version}"
+  "firmware_version_label": "{version}"
 }

@@ -16,7 +16,7 @@
   "midi_requesting_access": "Toestemming vragen...",
   "midi_not_supported": "Je browser kan geen verbinding maken met de DRUM. Probeer Chrome, Edge of Opera.",
   "midi_request_access_button": "Verbinding Toestaan",
-  "device_connected_status": "Verbonden! ({deviceName})",
+  "device_connected_status": "Verbonden met {deviceName}",
   "device_disconnect_button": "Verbreken",
   "device_not_connected_status": "Geen Dato DRUM verbonden.",
   "select_midi_device": "Kies je MIDI-poort:",
