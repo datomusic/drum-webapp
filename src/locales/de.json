@@ -18,7 +18,7 @@
   "midi_request_access_button": "Verbindung erlauben",
   "device_connected_status": "Verbunden! ({deviceName})",
   "device_disconnect_button": "Trennen",
-  "device_not_connected_status": "DRUM nicht verbunden.",
+  "device_not_connected_status": "Kein Dato DRUM verbunden.",
   "select_midi_device": "Wähle dein DRUM:",
   "choose_device_option": "Wähle eines aus...",
   "no_midi_devices_found": "Schließe dein Dato DRUM an, um zu starten."

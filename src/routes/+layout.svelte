@@ -25,7 +25,7 @@
 					focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white
 				"
 			>
-				{#each locales as lang}
+				{#each locales as lang }
 					<option value={lang.code}>{lang.name}</option>
 				{/each}
 			</select>
@@ -42,10 +42,11 @@
 </footer>
 
 <style>
-	/* No custom styles needed here anymore for the language switcher */
-		#language-select {
+	#language-select,
+	#language-select:active:first-child {
 		text-transform: uppercase;
 	}
+	/* Make sure the elements in the dropdown are not uppercased */
 	#language-select:active {
 		text-transform: none;
 	}
