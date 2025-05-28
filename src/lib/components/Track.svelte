@@ -66,7 +66,7 @@
     {#each samples as sample, i (sample.midiNoteNumber)}
       <div
         class="sample-item-wrapper flex-shrink-0"
-        style="width: {buttonWidthPx}px; margin-right: {i < samples.length - 1 ? gapPx : 0}px;"
+        style="width: {buttonWidthPx}px; margin-right: { gapPx/2 }px; margin-left: { gapPx/2 }px;"
       >
         <SampleButton
           color={sample.color}

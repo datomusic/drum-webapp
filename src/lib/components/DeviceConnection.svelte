@@ -51,8 +51,6 @@
 </script>
 
 <section class="p-4  bg-white">
-    <p class="text-gray-700">{$_('device_connection_description')}</p>
-
     <div class="mt-4 bg-gray-100 p-3 rounded">
         {#if $midiStore.error}
             <p class="text-red-600 mb-2">{$_('midi_error_message', { values: { error: $midiStore.error } })}</p>

@@ -10,7 +10,6 @@
   "firmware_update_description": "Mache dein Gerät besser mit Updates.",
   "firmware_update_content_placeholder": "Update-Infos werden hier angezeigt.",
   "firmware_update_button": "Nach Updates suchen",
-  "device_connection_description": "Schließe dein Dato DRUM an, um zu starten.",
   "device_connection_content_placeholder": "Verbindungsstatus wird hier angezeigt.",
   "device_connection_button": "Verbinden",
   "midi_error_message": "Hoppla! Etwas ist schiefgelaufen: {error}",
@@ -22,5 +21,5 @@
   "device_not_connected_status": "DRUM nicht verbunden.",
   "select_midi_device": "Wähle dein DRUM:",
   "choose_device_option": "Wähle eines aus...",
-  "no_midi_devices_found": "Kein DRUM gefunden. Ist es angeschlossen?"
+  "no_midi_devices_found": "Schließe dein Dato DRUM an, um zu starten."
 }
