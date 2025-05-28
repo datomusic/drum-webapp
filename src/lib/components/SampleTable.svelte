@@ -19,8 +19,8 @@
     /**
      * Generates an array of sample data for a track with specific MIDI note range and colors.
      * Notes are generated from high to low.
-     * @param startNote The highest MIDI note number for the track.
-     * @param endNote The lowest MIDI note number for the track.
+     * @param startNote The first MIDI note number for the track.
+     * @param endNote The last MIDI note number for the track.
      * @param colors An array of hex color strings to cycle through.
      * @returns An array of sample objects { color: string, midiNoteNumber: number }.
      */
@@ -52,14 +52,10 @@
     ];
 </script>
 
-<section class="w-full bg-white py-4"> <!-- Removed p-4, added py-4 for vertical padding -->
-    <!-- Placeholder for sample data table -->
-    <div class="max-w-screen-lg mx-auto px-4"> <!-- Added max-w-screen-lg, mx-auto, and px-4 for horizontal padding -->
-        <!-- Removed: <h2 class="text-xl font-semibold mb-4">{$_('sample_table_title')}</h2> -->
-        <div class="flex flex-col gap-4">
-            {#each tracks as track, i (i)}
-                <Track samples={track.samples} trackIndex={i} /> <!-- Pass the track index -->
-            {/each}
-        </div>
+<section class="w-full bg-white py-4">
+    <div class="mx-auto px-4">
+        {#each tracks as track, i (i)}
+            <Track samples={track.samples} trackIndex={i} />
+        {/each}
     </div>
 </section>
