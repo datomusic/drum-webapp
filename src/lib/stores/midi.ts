@@ -58,7 +58,7 @@ async function requestMidiAccess() {
             throw new Error('Web MIDI API is not supported in this browser.');
         }
 
-        const midiAccess = await navigator.requestMIDIAccess({ sysex: true }); // Request SYSEX access for firmware updates
+        const midiAccess = await navigator.requestMIDIAAccess({ sysex: true }); // Request SYSEX access for firmware updates
         midiAccess.onstatechange = (event) => {
             console.log('MIDI state change:', event.port.name, event.port.state);
             updateMidiDevices(midiAccess); // Re-update devices on state change
@@ -94,13 +94,30 @@ function connectDevice(deviceId: string) {
 
     if (currentOutputs && currentInputs) {
         const output = currentOutputs.get(deviceId);
-        // Try to find a corresponding input device using the same filters
-        const input = Array.from(currentInputs.values()).find(inputPort => {
-            const inputNameLower = inputPort.name?.toLowerCase();
-            return inputNameLower && DRUM_DEVICE_FILTERS.some(filter => inputNameLower.includes(filter));
-        });
+        let input: MIDIInput | undefined;
 
         if (output) {
+            // Strategy 1: Try to find an input with the exact same name as the selected output
+            input = Array.from(currentInputs.values()).find(inputPort => inputPort.name === output.name);
+
+            // Strategy 2: If not found, try to find an input whose name contains the output's name (case-insensitive)
+            if (!input) {
+                const outputNameLower = output.name?.toLowerCase();
+                if (outputNameLower) {
+                    input = Array.from(currentInputs.values()).find(inputPort => 
+                        inputPort.name?.toLowerCase().includes(outputNameLower)
+                    );
+                }
+            }
+
+            // Strategy 3: If still not found, fall back to the general DRUM_DEVICE_FILTERS for inputs
+            if (!input) {
+                input = Array.from(currentInputs.values()).find(inputPort => {
+                    const inputNameLower = inputPort.name?.toLowerCase();
+                    return inputNameLower && DRUM_DEVICE_FILTERS.some(filter => inputNameLower.includes(filter));
+                });
+            }
+
             // If an input is found, attach a listener
             if (input) {
                 input.onmidimessage = (event) => {
