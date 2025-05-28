@@ -1,37 +1,37 @@
 <script lang="ts">
-  import { flip } from 'svelte/animate';
+  import { tweened } from 'svelte/motion';
+  import { cubicOut } from 'svelte/easing';
   import SampleButton from './SampleButton.svelte';
-  import Voice from './Voice.svelte'; // Import the new Voice component
+  import Voice from './Voice.svelte';
 
-  /**
-   * The array of sample data (color and MIDI note) for this track.
-   */
   export let samples: Array<{ color: string; midiNoteNumber: number }>;
+  export let trackIndex: number;
 
-  /**
-   * The index of this track, used to determine the Voice component's icon.
-   */
-  export let trackIndex: number; // New prop for the track's index
-
-  // Initialize selectedSampleIndex to the middle sample.
   let selectedSampleIndex = Math.floor(samples.length / 2);
-
-  // Reactive declaration for the color of the Voice component.
   $: selectedVoiceColor = samples[selectedSampleIndex]?.color;
 
-  // Define the sequence of voice icons
   const voiceIcons = [
     '/pad_hat.svg',
     '/pad_snare.svg',
     '/pad_clap.svg',
     '/pad_kick.svg',
   ];
-
-  // Determine the icon for this specific track's Voice component based on its index
   $: currentTrackIcon = voiceIcons[trackIndex % voiceIcons.length];
 
-  // Handler for the custom 'select' event from SampleButton.
-  // Updates selectedSampleIndex based on the midiNoteNumber of the clicked button.
+  // Configuration for layout (based on sm: Tailwind classes)
+  // sm:w-20 for SampleButton/Voice -> 5rem = 80px (assuming 1rem = 16px)
+  // sm:gap-x-4 for gaps -> 1rem = 16px
+  const buttonWidthPx = 80;
+  const gapPx = 16;
+  const itemSlotWidthPx = buttonWidthPx + gapPx; // Effective width of a button slot including its gap
+
+  let containerWidthPx = 0; // Bound to the track-container's clientWidth
+
+  const stripTranslateX = tweened(0, {
+    duration: 350,
+    easing: cubicOut,
+  });
+
   function handleSampleSelect(event: CustomEvent<{ midiNoteNumber: number; color: string }>) {
     const clickedSampleIndex = samples.findIndex(
       sample => sample.midiNoteNumber === event.detail.midiNoteNumber
@@ -41,16 +41,33 @@
     }
   }
 
-  // Reactive lists for buttons to the left and right of the selected Voice
-  $: leftButtons = samples.filter((_, i) => i < selectedSampleIndex);
-  $: rightButtons = samples.filter((_, i) => i > selectedSampleIndex);
+  // Reactive effect to update the translation when selectedSampleIndex or containerWidthPx changes
+  $: {
+    if (containerWidthPx > 0) {
+      // Calculate the X position that would place the center of the selected button
+      // at the center of the container.
+      // The total offset to the start of the selected button is `selectedSampleIndex * itemSlotWidthPx`.
+      // To center this button, its center (`buttonWidthPx / 2`) should align with `containerWidthPx / 2`.
+      const targetX =
+        containerWidthPx / 2 - selectedSampleIndex * itemSlotWidthPx - buttonWidthPx / 2;
+      stripTranslateX.set(targetX);
+    }
+  }
 </script>
 
-<div class="flex items-center w-full gap-x-3 p-1 sm:gap-x-4 sm:p-2">
-  <!-- Left SampleButtons -->
-  <div class="flex flex-1 justify-end items-center gap-x-3 sm:gap-x-4">
-    {#each leftButtons as sample (sample.midiNoteNumber)}
-      <div animate:flip={{ duration: 250 }}>
+<div
+  class="track-container relative flex items-center justify-center w-full h-24 overflow-hidden"
+  bind:clientWidth={containerWidthPx}
+>
+  <div
+    class="button-strip absolute flex items-center"
+    style="transform: translateX({$stripTranslateX}px); will-change: transform; white-space: nowrap;"
+  >
+    {#each samples as sample, i (sample.midiNoteNumber)}
+      <div
+        class="sample-item-wrapper flex-shrink-0"
+        style="width: {buttonWidthPx}px; margin-right: {i < samples.length - 1 ? gapPx : 0}px;"
+      >
         <SampleButton
           color={sample.color}
           midiNoteNumber={sample.midiNoteNumber}
@@ -60,23 +77,17 @@
     {/each}
   </div>
 
-  <!-- Voice Component (Centrally positioned) -->
-  <div class="flex-shrink-0">
-    {#if samples[selectedSampleIndex]} <!-- Ensure selected sample data exists -->
+  <div class="voice-overlay-container z-10">
+    {#if samples[selectedSampleIndex]}
       <Voice color={selectedVoiceColor} imageSrc={currentTrackIcon} />
     {/if}
   </div>
-
-  <!-- Right SampleButtons -->
-  <div class="flex flex-1 justify-start items-center gap-x-3 sm:gap-x-4">
-    {#each rightButtons as sample (sample.midiNoteNumber)}
-      <div animate:flip={{ duration: 250 }}>
-        <SampleButton
-          color={sample.color}
-          midiNoteNumber={sample.midiNoteNumber}
-          on:select={handleSampleSelect}
-        />
-      </div>
-    {/each}
-  </div>
 </div>
+
+<style>
+  /* Minimal styles needed as Tailwind and inline styles handle most of it.
+     will-change and white-space are added for the button strip for performance and layout.
+     The h-24 on track-container ensures enough vertical space.
+     SampleButton and Voice components are expected to be sm:w-20 sm:h-20 (80px).
+   */
+</style>
