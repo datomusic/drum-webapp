@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { flip } from 'svelte/animate';
   import SampleButton from './SampleButton.svelte';
   import Voice from './Voice.svelte'; // Import the new Voice component
 
@@ -13,14 +14,9 @@
   export let trackIndex: number; // New prop for the track's index
 
   // Initialize selectedSampleIndex to the middle sample.
-  // For an array of 8 samples, Math.floor(8 / 2) = 4.
-  // This means samples at indices 0, 1, 2, 3 are to the left.
-  // The sample at index 4 is "selected" (represented by Voice).
-  // Samples at indices 5, 6, 7 are to the right.
   let selectedSampleIndex = Math.floor(samples.length / 2);
 
   // Reactive declaration for the color of the Voice component.
-  // It updates whenever selectedSampleIndex or the samples array changes.
   $: selectedVoiceColor = samples[selectedSampleIndex]?.color;
 
   // Define the sequence of voice icons
@@ -42,36 +38,26 @@
     );
     if (clickedSampleIndex !== -1) {
       selectedSampleIndex = clickedSampleIndex;
-      // selectedVoiceColor will update reactively due to the '$:' declaration.
     }
   }
 </script>
 
-<div class="flex items-center w-full gap-3 p-1 sm:gap-4 sm:p-2">
-  <!-- Container for Left SampleButtons -->
-  <div class="flex flex-1 justify-end items-center gap-3 sm:gap-4">
-    {#each samples.slice(0, selectedSampleIndex) as sample (sample.midiNoteNumber)}
-      <SampleButton
-        color={sample.color}
-        midiNoteNumber={sample.midiNoteNumber}
-        on:select={handleSampleSelect}
-      />
-    {/each}
-  </div>
-
-  <!-- Voice Component (fixed size, centered) -->
-  <div class="flex-shrink-0">
-    <Voice color={selectedVoiceColor} imageSrc={currentTrackIcon} />
-  </div>
-
-  <!-- Container for Right SampleButtons -->
-  <div class="flex flex-1 justify-start items-center gap-3 sm:gap-4">
-    {#each samples.slice(selectedSampleIndex + 1) as sample (sample.midiNoteNumber)}
-      <SampleButton
-        color={sample.color}
-        midiNoteNumber={sample.midiNoteNumber}
-        on:select={handleSampleSelect}
-      />
-    {/each}
-  </div>
+<div class="flex items-center justify-center w-full gap-x-3 p-1 sm:gap-x-4 sm:p-2">
+  {#each samples as sample, i (sample.midiNoteNumber)}
+    <div class="animated-item-wrapper" animate:flip={{ duration: 250 }}>
+      {#if i === selectedSampleIndex}
+        <div class="voice-container flex-shrink-0">
+          {#if samples[selectedSampleIndex]} <!-- Ensure selected sample data exists -->
+            <Voice color={selectedVoiceColor} imageSrc={currentTrackIcon} />
+          {/if}
+        </div>
+      {:else}
+        <SampleButton
+          color={sample.color}
+          midiNoteNumber={sample.midiNoteNumber}
+          on:select={handleSampleSelect}
+        />
+      {/if}
+    </div>
+  {/each}
 </div>
