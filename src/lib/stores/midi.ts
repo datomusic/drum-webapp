@@ -154,9 +154,9 @@ function connectDevice(deviceId: string) {
                             const major = data[10 + offset];
                             const minor = data[11 + offset];
                             const patch = data[12 + offset];
-                            // const commits = data[13 + offset]; // Optional, might not always be present
+                            const commits = data[13 + offset]; // Extract commits byte
 
-                            const fwVersion = `${major}.${minor}.${patch}`;
+                            const fwVersion = `${major}.${minor}.${patch} (${commits} commits)`;
                             console.log(`Identified device firmware: ${fwVersion}`);
 
                             update(state => ({
