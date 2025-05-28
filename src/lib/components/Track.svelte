@@ -3,10 +3,12 @@
   import { cubicOut } from 'svelte/easing';
   import SampleButton from './SampleButton.svelte';
   import Voice from './Voice.svelte';
+  import { activeMidiNote } from '$lib/stores/midi'; // Import activeMidiNote
 
   export let samples: Array<{ color: string; midiNoteNumber: number }>;
   export let trackIndex: number;
 
+  // Initialize selectedSampleIndex to the middle, or the first if samples are few
   let selectedSampleIndex = Math.floor(samples.length / 2);
   $: selectedVoiceColor = samples[selectedSampleIndex]?.color;
 
@@ -32,12 +34,15 @@
     easing: cubicOut,
   });
 
-  function handleSampleSelect(event: CustomEvent<{ midiNoteNumber: number; color: string }>) {
-    const clickedSampleIndex = samples.findIndex(
-      sample => sample.midiNoteNumber === event.detail.midiNoteNumber
-    );
-    if (clickedSampleIndex !== -1) {
-      selectedSampleIndex = clickedSampleIndex;
+  // Reactive statement to update selectedSampleIndex based on activeMidiNote
+  $: {
+    if ($activeMidiNote !== null) {
+      const incomingNoteIndex = samples.findIndex(
+        sample => sample.midiNoteNumber === $activeMidiNote
+      );
+      if (incomingNoteIndex !== -1) {
+        selectedSampleIndex = incomingNoteIndex;
+      }
     }
   }
 
@@ -71,7 +76,6 @@
         <SampleButton
           color={sample.color}
           midiNoteNumber={sample.midiNoteNumber}
-          on:select={handleSampleSelect}
         />
       </div>
     {/each}

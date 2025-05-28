@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { midiStore } from '$lib/stores/midi';
+  import { midiStore, activeMidiNote } from '$lib/stores/midi'; // Import activeMidiNote
   import { get } from 'svelte/store';
-  import { createEventDispatcher } from 'svelte'; // Import createEventDispatcher
 
   /**
    * The color of the button, e.g., '#FF0000' or 'red'.
@@ -13,32 +12,12 @@
    */
   export let midiNoteNumber: number;
 
-  const NOTE_ON_VELOCITY = 127; // Max velocity
-  const NOTE_OFF_VELOCITY = 0; // Velocity for note off (often ignored, but good practice)
-  const NOTE_DURATION_MS = 100; // Duration before sending Note Off
+  // Reactive variable to determine if this button is currently active
+  $: isActive = $activeMidiNote === midiNoteNumber;
 
-  const dispatch = createEventDispatcher(); // Initialize dispatcher
-
-  function playMidiNote() {
-    const { selectedOutput } = get(midiStore);
-
-    if (selectedOutput) {
-      // MIDI Note On message: [status byte, note number, velocity]
-      // Status byte 0x90 = Note On on channel 1
-      selectedOutput.send([0x90, midiNoteNumber, NOTE_ON_VELOCITY]);
-
-      // Schedule MIDI Note Off after a delay
-      setTimeout(() => {
-        // MIDI Note Off message: [status byte, note number, velocity]
-        // Status byte 0x80 = Note Off on channel 1
-        selectedOutput.send([0x80, midiNoteNumber, NOTE_OFF_VELOCITY]);
-      }, NOTE_DURATION_MS);
-    } else {
-      console.warn('No MIDI output selected. Cannot play note.');
-    }
-
-    // Dispatch a custom event with the button's midiNoteNumber and color
-    dispatch('select', { midiNoteNumber: midiNoteNumber, color: color });
+  function handleClick() {
+    // Call the centralized playNote function from the midiStore
+    midiStore.playNote(midiNoteNumber);
   }
 </script>
 
@@ -50,9 +29,10 @@
     cursor-pointer
     transition-all duration-150 ease-in-out
     focus:outline-none
+    {isActive ? 'ring-4 ring-offset-2 ring-white shadow-lg' : ''}
   "
   style="background-color: {color};"
-  on:click={playMidiNote}
+  on:click={handleClick}
   on:keydown
 >
   {midiNoteNumber}
@@ -61,4 +41,5 @@
 <style>
   /* No specific styles needed here, Tailwind handles most of it. */
   /* The background-color is set via the style attribute directly. */
+  /* The 'ring' and 'shadow' classes are applied conditionally by Tailwind. */
 </style>

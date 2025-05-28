@@ -5,6 +5,7 @@ interface MidiState {
     access: MIDIAccess | null;
     inputs: MIDIInputMap | null;
     outputs: MIDIOutputMap | null;
+    selectedInput: MIDIInput | null; // Added for selected input device
     selectedOutput: MIDIOutput | null;
     isConnected: boolean;
     error: string | null;
@@ -16,14 +17,27 @@ const initialState: MidiState = {
     access: null,
     inputs: null,
     outputs: null,
+    selectedInput: null, // Initialize selected input
     selectedOutput: null,
     isConnected: false,
     error: null,
     isRequestingAccess: false,
 };
 
+// Define the filter array for Dato DRUM devices
+// A device will match if its name contains any of these strings (case-insensitive)
+const DRUM_DEVICE_FILTERS = ['DRUM', 'Dato DRUM', 'Pico'];
+
+// Constants for MIDI note playback
+const NOTE_ON_VELOCITY = 127; // Max velocity
+const NOTE_OFF_VELOCITY = 0; // Velocity for note off (often ignored, but good practice)
+const NOTE_DURATION_MS = 100; // Duration before sending Note Off for clicks/auditioning
+
 // Create the writable store
 const { subscribe, set, update } = writable<MidiState>(initialState);
+
+// Writable store for the currently active MIDI note (for visual feedback)
+export const activeMidiNote = writable<number | null>(null);
 
 // Function to update MIDI devices when state changes
 function updateMidiDevices(midiAccess: MIDIAccess) {
@@ -48,6 +62,10 @@ async function requestMidiAccess() {
         midiAccess.onstatechange = (event) => {
             console.log('MIDI state change:', event.port.name, event.port.state);
             updateMidiDevices(midiAccess); // Re-update devices on state change
+            // If the selected device disconnects, clear selection
+            if (event.port.state === 'disconnected' && get(midiStore).selectedOutput?.id === event.port.id) {
+                disconnectDevice();
+            }
         };
         updateMidiDevices(midiAccess);
         console.log('MIDI access granted:', midiAccess);
@@ -58,6 +76,7 @@ async function requestMidiAccess() {
             access: null,
             inputs: null,
             outputs: null,
+            selectedInput: null,
             selectedOutput: null,
             isConnected: false,
             error: err.message || 'Failed to get MIDI access. Please ensure your device is connected and browser permissions are granted.',
@@ -69,13 +88,41 @@ async function requestMidiAccess() {
 
 // Connect to a specific MIDI output device
 function connectDevice(deviceId: string) {
-    const currentOutputs = get(midiStore).outputs;
-    if (currentOutputs) {
+    const currentMidiState = get(midiStore);
+    const currentOutputs = currentMidiState.outputs;
+    const currentInputs = currentMidiState.inputs;
+
+    if (currentOutputs && currentInputs) {
         const output = currentOutputs.get(deviceId);
+        // Try to find a corresponding input device using the same filters
+        const input = Array.from(currentInputs.values()).find(inputPort => {
+            const inputNameLower = inputPort.name?.toLowerCase();
+            return inputNameLower && DRUM_DEVICE_FILTERS.some(filter => inputNameLower.includes(filter));
+        });
+
         if (output) {
+            // If an input is found, attach a listener
+            if (input) {
+                input.onmidimessage = (event) => {
+                    const [statusCode, noteNumber, velocity] = event.data;
+                    // Note On (0x90) with velocity > 0
+                    if (statusCode === 0x90 && velocity > 0) {
+                        activeMidiNote.set(noteNumber);
+                    } 
+                    // Note Off (0x80) or Note On with velocity 0
+                    else if (statusCode === 0x80 || (statusCode === 0x90 && velocity === 0)) {
+                        activeMidiNote.set(null);
+                    }
+                };
+                console.log('Listening to MIDI input:', input.name);
+            } else {
+                console.warn('No matching MIDI input found for selected output device.');
+            }
+
             update(state => ({
                 ...state,
                 selectedOutput: output,
+                selectedInput: input || null, // Set the selected input
                 isConnected: true,
                 error: null,
             }));
@@ -84,6 +131,7 @@ function connectDevice(deviceId: string) {
             update(state => ({
                 ...state,
                 selectedOutput: null,
+                selectedInput: null,
                 isConnected: false,
                 error: 'Selected device not found.',
             }));
@@ -93,21 +141,56 @@ function connectDevice(deviceId: string) {
         update(state => ({
             ...state,
             selectedOutput: null,
+            selectedInput: null,
             isConnected: false,
-            error: 'MIDI outputs not available. Please request MIDI access first.',
+            error: 'MIDI outputs/inputs not available. Please request MIDI access first.',
         }));
-        console.error('MIDI outputs not available.');
+        console.error('MIDI outputs/inputs not available.');
     }
 }
 
 // Disconnect from the current device
 function disconnectDevice() {
+    const currentMidiState = get(midiStore);
+    if (currentMidiState.selectedInput) {
+        currentMidiState.selectedInput.onmidimessage = null; // Remove listener
+    }
     update(state => ({
         ...state,
         selectedOutput: null,
+        selectedInput: null,
         isConnected: false,
     }));
+    activeMidiNote.set(null); // Clear active note on disconnect
     console.log('Disconnected from MIDI device.');
+}
+
+// Function to play a MIDI note (for clicks/auditioning)
+function playNote(noteNumber: number) {
+    const { selectedOutput } = get(midiStore);
+
+    if (selectedOutput) {
+        // MIDI Note On message: [status byte, note number, velocity]
+        // Status byte 0x90 = Note On on channel 1
+        selectedOutput.send([0x90, noteNumber, NOTE_ON_VELOCITY]);
+
+        // Set active note for visual feedback
+        activeMidiNote.set(noteNumber);
+
+        // Schedule MIDI Note Off after a delay
+        setTimeout(() => {
+            // MIDI Note Off message: [status byte, note number, velocity]
+            // Status byte 0x80 = Note Off on channel 1
+            selectedOutput.send([0x80, noteNumber, NOTE_OFF_VELOCITY]);
+            // Clear active note after duration, but only if it's still this note
+            // This prevents clearing if another note was pressed quickly after
+            if (get(activeMidiNote) === noteNumber) {
+                activeMidiNote.set(null);
+            }
+        }, NOTE_DURATION_MS);
+    } else {
+        console.warn('No MIDI output selected. Cannot play note.');
+    }
 }
 
 // Export the store and actions
@@ -116,8 +199,5 @@ export const midiStore = {
     requestMidiAccess,
     connectDevice,
     disconnectDevice,
+    playNote, // Export the new playNote function
 };
-
-// Automatically request MIDI access when the store is first used (e.g., on app load)
-// This might be too aggressive; consider calling it explicitly from a component if preferred.
-// requestMidiAccess();
