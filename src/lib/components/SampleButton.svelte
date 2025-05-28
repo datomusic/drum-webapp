@@ -44,10 +44,10 @@
 
 <button
   class="
-    w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32
+    w-16 h-16 sm:w-20 sm:h-20
     rounded-full
     flex items-center justify-center
-    text-white text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl
+    text-white text-lg sm:text-xl md:text-2xl
     font-bold
     cursor-pointer
      hover:shadow-lg active:shadow-inner
