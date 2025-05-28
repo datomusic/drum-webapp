@@ -17,11 +17,17 @@ const config = {
 			// these options are set automatically — see below
 			pages: 'build',
 			assets: 'build',
-			base: '/playground/drum-webapp',
+			// This 'base' option for adapter-static is for where the adapter places assets.
+			// It's often redundant if kit.paths.base is set, but can be kept for clarity.
+			// It should match kit.paths.base.
 			fallback: undefined,
 			precompress: false,
 			strict: true
-		})
+		}),
+		// This is the crucial part for SvelteKit's internal path resolution
+		paths: {
+			base: '/playground/drum-webapp'
+		}
 	}
 };
 
