@@ -38,6 +38,25 @@
         }
     }
 
+    // Reactive statement for auto-selection
+    $: {
+        // If not connected, and there are filtered outputs, and the current selection is not the first one
+        if (!$midiStore.isConnected && $filteredOutputs.length > 0) {
+            const firstDeviceId = $filteredOutputs[0].id;
+            if (selectedDeviceId !== firstDeviceId) {
+                selectedDeviceId = firstDeviceId;
+            }
+        }
+    }
+
+    // Reactive statement for auto-connection
+    $: {
+        // If a device is selected and we are not yet connected, attempt to connect
+        if (selectedDeviceId && !$midiStore.isConnected) {
+            handleConnect();
+        }
+    }
+
     function handleConnect() {
         if (selectedDeviceId) {
             midiStore.connectDevice(selectedDeviceId);
