@@ -69,13 +69,13 @@
                 {$_('device_disconnect_button')}
             </button>
         {:else}
-            <p class="text-gray-600">{$_('device_not_connected_status')}</p>
+            <p>{$_('device_not_connected_status')}</p>
             {#if $filteredOutputs.length > 0}
                 <div class="mt-2">
-                    <label for="midi-device-select" class="block text-sm font-medium text-gray-700">{$_('select_midi_device')}</label>
+                    <label for="midi-device-select" class="block">{$_('select_midi_device')}</label>
                     <select
                         id="midi-device-select"
-                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                         bind:value={selectedDeviceId}
                     >
                         <option value="" disabled>{$_('choose_device_option')}</option>
@@ -92,7 +92,7 @@
                     {$_('device_connection_button')}
                 </button>
             {:else}
-                <p class="text-gray-600 mt-2">{$_('no_midi_devices_found')}</p>
+                <p>{$_('no_midi_devices_found')}</p>
             {/if}
         {/if}
     </div>
