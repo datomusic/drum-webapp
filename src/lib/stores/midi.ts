@@ -104,6 +104,7 @@ function connectDevice(deviceId: string) {
             // If an input is found, attach a listener
             if (input) {
                 input.onmidimessage = (event) => {
+                    console.log('Incoming MIDI message:', event.data); // Log incoming MIDI notes
                     const [statusCode, noteNumber, velocity] = event.data;
                     // Note On (0x90) with velocity > 0
                     if (statusCode === 0x90 && velocity > 0) {
