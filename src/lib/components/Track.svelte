@@ -40,24 +40,43 @@
       selectedSampleIndex = clickedSampleIndex;
     }
   }
+
+  // Reactive lists for buttons to the left and right of the selected Voice
+  $: leftButtons = samples.filter((_, i) => i < selectedSampleIndex);
+  $: rightButtons = samples.filter((_, i) => i > selectedSampleIndex);
 </script>
 
-<div class="flex items-center justify-center w-full gap-x-3 p-1 sm:gap-x-4 sm:p-2">
-  {#each samples as sample, i (sample.midiNoteNumber)}
-    <div class="animated-item-wrapper" animate:flip={{ duration: 250 }}>
-      {#if i === selectedSampleIndex}
-        <div class="voice-container flex-shrink-0">
-          {#if samples[selectedSampleIndex]} <!-- Ensure selected sample data exists -->
-            <Voice color={selectedVoiceColor} imageSrc={currentTrackIcon} />
-          {/if}
-        </div>
-      {:else}
+<div class="flex items-center w-full gap-x-3 p-1 sm:gap-x-4 sm:p-2">
+  <!-- Left SampleButtons -->
+  <div class="flex flex-1 justify-end items-center gap-x-3 sm:gap-x-4">
+    {#each leftButtons as sample (sample.midiNoteNumber)}
+      <div animate:flip={{ duration: 250 }}>
         <SampleButton
           color={sample.color}
           midiNoteNumber={sample.midiNoteNumber}
           on:select={handleSampleSelect}
         />
-      {/if}
-    </div>
-  {/each}
+      </div>
+    {/each}
+  </div>
+
+  <!-- Voice Component (Centrally positioned) -->
+  <div class="flex-shrink-0">
+    {#if samples[selectedSampleIndex]} <!-- Ensure selected sample data exists -->
+      <Voice color={selectedVoiceColor} imageSrc={currentTrackIcon} />
+    {/if}
+  </div>
+
+  <!-- Right SampleButtons -->
+  <div class="flex flex-1 justify-start items-center gap-x-3 sm:gap-x-4">
+    {#each rightButtons as sample (sample.midiNoteNumber)}
+      <div animate:flip={{ duration: 250 }}>
+        <SampleButton
+          color={sample.color}
+          midiNoteNumber={sample.midiNoteNumber}
+          on:select={handleSampleSelect}
+        />
+      </div>
+    {/each}
+  </div>
 </div>
