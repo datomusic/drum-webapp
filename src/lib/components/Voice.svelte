@@ -29,7 +29,7 @@
 "
 style="{backgroundStyle}"
 >
-  <img src={imageSrc} alt="Voice Settings" class="w-16 h-16" />
+  <img src={imageSrc} alt="Voice" class="w-16 h-16" />
 </div>
 
 <style>

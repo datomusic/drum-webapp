@@ -2,10 +2,10 @@
     import { _ } from 'svelte-i18n';
     import { midiStore } from '$lib/stores/midi';
     import { onMount } from 'svelte';
-    import { derived } from 'svelte/svelte-store'; // Corrected import path for derived
+    import { derived } from 'svelte/store';
 
     let selectedDeviceId: string | undefined;
-    let userDisconnected: boolean = false; // New flag to track user-initiated disconnect
+    let userDisconnected: boolean = false;
 
     // Define the filter array for Dato DRUM devices
     // A device will match if its name contains any of these strings (case-insensitive)
@@ -77,7 +77,7 @@
 </script>
 
 <section class="p-4  bg-white">
-    <div class="mt-4 bg-gray-100 p-3 rounded">
+    <div class="bg-gray-100 p-3 rounded">
         {#if $midiStore.error}
             <p class="text-red-600 mb-2">{$_('midi_error_message', { values: { error: $midiStore.error } })}</p>
         {/if}
@@ -90,18 +90,19 @@
                 {$_('midi_request_access_button')}
             </button>
         {:else if $midiStore.isConnected}
-            <p class="text-green-600">{$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } })}</p>
-            <button class="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" on:click={handleDisconnect}>
-                {$_('device_disconnect_button')}
-            </button>
+            <p class="text-green-600">{$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } })}
+                <button class="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" on:click={handleDisconnect}>
+                    {$_('device_disconnect_button')}
+                </button>
+            </p>
         {:else}
             <p>{$_('device_not_connected_status')}</p>
             {#if $filteredOutputs.length > 0}
                 <div class="mt-2">
-                    <label for="midi-device-select" class="block">{$_('select_midi_device')}</label>
+                    <label for="midi-device-select">{$_('select_midi_device')}</label>
                     <select
                         id="midi-device-select"
-                        class="mt-1 block w-full pl-3 pr-10 py-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        class="mt-1 pl-3 pr-10 py-2 border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                         bind:value={selectedDeviceId}
                     >
                         <option value="" disabled>{$_('choose_device_option')}</option>
@@ -109,14 +110,14 @@
                             <option value={output.id}>{output.name}</option>
                         {/each}
                     </select>
-                </div>
-                <button
+                    <button
                     class="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     on:click={handleConnect}
                     disabled={!selectedDeviceId}
                 >
                     {$_('device_connection_button')}
                 </button>
+                </div>
             {:else}
                 <p>{$_('no_midi_devices_found')}</p>
             {/if}

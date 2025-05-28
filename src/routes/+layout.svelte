@@ -14,7 +14,7 @@
 <header class="bg-white text-gray-800 p-4 text-center">
 	<nav class="flex justify-between items-center max-w-screen-lg mx-auto">
 		<div class="flex items-center gap-2">
-			<img src="/dato_drum_logo.svg" alt="Dato DRUM Logo" class="h-10 sm:h-10" />
+			<img src="dato_drum_logo.svg" alt="Dato DRUM Logo" class="h-10 sm:h-10" />
 		</div>
 		<div class="flex items-center gap-2">
 			<select

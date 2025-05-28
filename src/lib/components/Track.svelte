@@ -13,10 +13,10 @@
   $: selectedVoiceColor = samples[selectedSampleIndex]?.color;
 
   const voiceIcons = [
-    '/pad_hat.svg',
-    '/pad_clap.svg',
-    '/pad_snare.svg',
-    '/pad_kick.svg',
+    'pad_hat.svg',
+    'pad_clap.svg',
+    'pad_snare.svg',
+    'pad_kick.svg',
   ];
   $: currentTrackIcon = voiceIcons[trackIndex % voiceIcons.length];
 
