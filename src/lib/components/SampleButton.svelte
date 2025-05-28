@@ -46,11 +46,8 @@
   class="
     w-16 h-16
     rounded-full
-    flex items-center justify-center
-    text-white text-lg sm:text-xl md:text-2xl
-    font-bold
+    text-white text-lg
     cursor-pointer
-     hover:shadow-lg active:shadow-inner
     transition-all duration-150 ease-in-out
     focus:outline-none
   "

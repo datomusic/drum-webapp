@@ -12,8 +12,8 @@
 
   const voiceIcons = [
     '/pad_hat.svg',
-    '/pad_snare.svg',
     '/pad_clap.svg',
+    '/pad_snare.svg',
     '/pad_kick.svg',
   ];
   $: currentTrackIcon = voiceIcons[trackIndex % voiceIcons.length];
@@ -56,11 +56,11 @@
 </script>
 
 <div
-  class="track-container relative flex items-center justify-center w-full h-24 overflow-hidden"
+  class="track-container relative flex items-center w-full h-24 overflow-hidden bg-gray-100"
   bind:clientWidth={containerWidthPx}
 >
   <div
-    class="button-strip absolute flex items-center"
+    class="button-strip absolute flex items-center bg-gray-200"
     style="transform: translateX({$stripTranslateX}px); will-change: transform; white-space: nowrap;"
   >
     {#each samples as sample, i (sample.midiNoteNumber)}
