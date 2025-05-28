@@ -47,25 +47,31 @@
   }
 </script>
 
-<div class="flex items-center justify-center gap-3 p-1 sm:gap-4 sm:p-2">
-  <!-- Render SampleButtons to the left of the Voice component -->
-  {#each samples.slice(0, selectedSampleIndex) as sample (sample.midiNoteNumber)}
-    <SampleButton
-      color={sample.color}
-      midiNoteNumber={sample.midiNoteNumber}
-      on:select={handleSampleSelect}
-    />
-  {/each}
+<div class="flex items-center w-full gap-3 p-1 sm:gap-4 sm:p-2">
+  <!-- Container for Left SampleButtons -->
+  <div class="flex flex-1 justify-end items-center gap-3 sm:gap-4">
+    {#each samples.slice(0, selectedSampleIndex) as sample (sample.midiNoteNumber)}
+      <SampleButton
+        color={sample.color}
+        midiNoteNumber={sample.midiNoteNumber}
+        on:select={handleSampleSelect}
+      />
+    {/each}
+  </div>
 
-  <!-- Voice Component (replaces the selected SampleButton) -->
-  <Voice color={selectedVoiceColor} imageSrc={currentTrackIcon} />
+  <!-- Voice Component (fixed size, centered) -->
+  <div class="flex-shrink-0">
+    <Voice color={selectedVoiceColor} imageSrc={currentTrackIcon} />
+  </div>
 
-  <!-- Render SampleButtons to the right of the Voice component -->
-  {#each samples.slice(selectedSampleIndex + 1) as sample (sample.midiNoteNumber)}
-    <SampleButton
-      color={sample.color}
-      midiNoteNumber={sample.midiNoteNumber}
-      on:select={handleSampleSelect}
-    />
-  {/each}
+  <!-- Container for Right SampleButtons -->
+  <div class="flex flex-1 justify-start items-center gap-3 sm:gap-4">
+    {#each samples.slice(selectedSampleIndex + 1) as sample (sample.midiNoteNumber)}
+      <SampleButton
+        color={sample.color}
+        midiNoteNumber={sample.midiNoteNumber}
+        on:select={handleSampleSelect}
+      />
+    {/each}
+  </div>
 </div>
