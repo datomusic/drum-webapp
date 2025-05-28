@@ -37,8 +37,8 @@
       console.warn('No MIDI output selected. Cannot play note.');
     }
 
-    // Dispatch a custom event with the button's color
-    dispatch('select', { color: color });
+    // Dispatch a custom event with the button's midiNoteNumber and color
+    dispatch('select', { midiNoteNumber: midiNoteNumber, color: color });
   }
 </script>
 
