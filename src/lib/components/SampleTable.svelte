@@ -18,7 +18,7 @@
 
     /**
      * Generates an array of sample data for a track with specific MIDI note range and colors.
-     * Notes are generated from high to low.
+     * The order of notes (ascending or descending) is determined by the start and end notes.
      * @param startNote The first MIDI note number for the track.
      * @param endNote The last MIDI note number for the track.
      * @param colors An array of hex color strings to cycle through.
@@ -27,12 +27,25 @@
     function generateTrackSamples(startNote: number, endNote: number, colors: string[]) {
         const samples = [];
         let colorIndex = 0;
-        for (let i = startNote; i >= endNote; i--) {
-            samples.push({
-                color: colors[colorIndex % colors.length],
-                midiNoteNumber: i,
-            });
-            colorIndex++;
+
+        if (startNote <= endNote) {
+            // Loop in increasing order if startNote is less than or equal to endNote
+            for (let i = startNote; i <= endNote; i++) {
+                samples.push({
+                    color: colors[colorIndex % colors.length],
+                    midiNoteNumber: i,
+                });
+                colorIndex++;
+            }
+        } else {
+            // Loop in decreasing order if startNote is greater than endNote
+            for (let i = startNote; i >= endNote; i--) {
+                samples.push({
+                    color: colors[colorIndex % colors.length],
+                    midiNoteNumber: i,
+                });
+                colorIndex++;
+            }
         }
         return samples;
     }
