@@ -44,7 +44,7 @@
 
 <button
   class="
-    w-16 h-16 sm:w-20 sm:h-20
+    w-16 h-16
     rounded-full
     flex items-center justify-center
     text-white text-lg sm:text-xl md:text-2xl
@@ -52,7 +52,7 @@
     cursor-pointer
      hover:shadow-lg active:shadow-inner
     transition-all duration-150 ease-in-out
-    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+    focus:outline-none
   "
   style="background-color: {color};"
   on:click={playMidiNote}

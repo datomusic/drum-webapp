@@ -19,7 +19,7 @@
 
 <div class="
     voice-component
-    w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 xl:w-20 xl:h-20 <!-- Reverted sizes -->
+    w-20 h-20
     rounded-lg
     flex items-center justify-center
     shadow-sm
@@ -29,7 +29,7 @@
 "
 style="{backgroundStyle}"
 >
-  <img src={imageSrc} alt="Voice Settings" class="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12" /> <!-- Reverted sizes -->
+  <img src={imageSrc} alt="Voice Settings" class="w-16 h-16" />
 </div>
 
 <style>
