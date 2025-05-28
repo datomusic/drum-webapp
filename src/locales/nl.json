@@ -21,5 +21,6 @@
   "device_not_connected_status": "Geen Dato DRUM verbonden.",
   "select_midi_device": "Kies je MIDI-poort:",
   "choose_device_option": "Selecteer er een...",
-  "no_midi_devices_found": "Sluit je Dato DRUM aan om te beginnen."
+  "no_midi_devices_found": "Sluit je Dato DRUM aan om te beginnen.",
+  "firmware_version_label": "Firmware: {version}"
 }

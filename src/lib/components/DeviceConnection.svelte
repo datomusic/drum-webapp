@@ -62,6 +62,13 @@
         }
     }
 
+    // ADDED: Reactive statement to request identity when connected and firmware version is not yet known
+    $: {
+        if ($midiStore.isConnected && $midiStore.selectedOutput && !$midiStore.firmwareVersion) {
+            midiStore.requestIdentity();
+        }
+    }
+
     function handleConnect() {
         if (selectedDeviceId) {
             userDisconnected = false; // Reset the flag when a connection is attempted (manual or auto)
@@ -90,7 +97,10 @@
                 {$_('midi_request_access_button')}
             </button>
         {:else if $midiStore.isConnected}
-            <p class="text-green-600">{$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } })}
+            <p class="text-green-600">
+                {$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } })}
+                {#if $midiStore.firmwareVersion}
+                    ({$_('firmware_version_label', { values: { version: $midiStore.firmwareVersion } })}){/if}
                 <button class="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" on:click={handleDisconnect}>
                     {$_('device_disconnect_button')}
                 </button>

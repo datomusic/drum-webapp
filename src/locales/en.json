@@ -21,5 +21,6 @@
   "device_not_connected_status": "No Dato DRUM connected.",
   "select_midi_device": "Choose your MIDI port:",
   "choose_device_option": "Select one...",
-  "no_midi_devices_found": "Plug in your Dato DRUM to start."
+  "no_midi_devices_found": "Plug in your Dato DRUM to start.",
+  "firmware_version_label": "Firmware: {version}"
 }
