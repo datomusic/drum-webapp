@@ -2,9 +2,10 @@
     import { _ } from 'svelte-i18n';
     import { midiStore } from '$lib/stores/midi';
     import { onMount } from 'svelte';
-    import { derived } from 'svelte/store'; // Import derived for reactive filtering
+    import { derived } from 'svelte/svelte-store'; // Corrected import path for derived
 
     let selectedDeviceId: string | undefined;
+    let userDisconnected: boolean = false; // New flag to track user-initiated disconnect
 
     // Define the filter array for Dato DRUM devices
     // A device will match if its name contains any of these strings (case-insensitive)
@@ -40,30 +41,36 @@
 
     // Reactive statement for auto-selection
     $: {
-        // If not connected, and there are filtered outputs, and the current selection is not the first one
-        if (!$midiStore.isConnected && $filteredOutputs.length > 0) {
-            const firstDeviceId = $filteredOutputs[0].id;
-            if (selectedDeviceId !== firstDeviceId) {
-                selectedDeviceId = firstDeviceId;
-            }
+        // Auto-select only if:
+        // 1. Not connected
+        // 2. There are filtered outputs
+        // 3. No device is currently selected (selectedDeviceId is undefined)
+        // 4. AND the user has NOT just initiated a disconnect
+        if (!$midiStore.isConnected && $filteredOutputs.length > 0 && selectedDeviceId === undefined && !userDisconnected) {
+            selectedDeviceId = $filteredOutputs[0].id;
         }
     }
 
     // Reactive statement for auto-connection
     $: {
-        // If a device is selected and we are not yet connected, attempt to connect
-        if (selectedDeviceId && !$midiStore.isConnected) {
+        // Auto-connect only if:
+        // 1. A device is selected
+        // 2. We are not currently connected
+        // 3. AND the user has NOT just initiated a disconnect
+        if (selectedDeviceId && !$midiStore.isConnected && !userDisconnected) {
             handleConnect();
         }
     }
 
     function handleConnect() {
         if (selectedDeviceId) {
+            userDisconnected = false; // Reset the flag when a connection is attempted (manual or auto)
             midiStore.connectDevice(selectedDeviceId);
         }
     }
 
     function handleDisconnect() {
+        userDisconnected = true; // Set the flag to prevent immediate auto-reconnection
         midiStore.disconnectDevice();
         selectedDeviceId = undefined; // Clear selection on disconnect
     }
