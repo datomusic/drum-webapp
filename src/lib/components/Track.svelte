@@ -77,7 +77,7 @@
     {/each}
   </div>
 
-  <div class="voice-overlay-container z-10">
+  <div class="voice-overlay-container z-10 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
     {#if samples[selectedSampleIndex]}
       <Voice color={selectedVoiceColor} imageSrc={currentTrackIcon} />
     {/if}
