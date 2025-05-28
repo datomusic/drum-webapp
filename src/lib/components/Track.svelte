@@ -3,7 +3,7 @@
   import { cubicOut } from 'svelte/easing';
   import SampleButton from './SampleButton.svelte';
   import Voice from './Voice.svelte';
-  import { activeMidiNote } from '$lib/stores/midi'; // Import activeMidiNote
+  import { selectedSampleMidiNote } from '$lib/stores/midi'; // Import selectedSampleMidiNote
 
   export let samples: Array<{ color: string; midiNoteNumber: number }>;
   export let trackIndex: number;
@@ -34,11 +34,11 @@
     easing: cubicOut,
   });
 
-  // Reactive statement to update selectedSampleIndex based on activeMidiNote
+  // Reactive statement to update selectedSampleIndex based on selectedSampleMidiNote
   $: {
-    if ($activeMidiNote !== null) {
+    if ($selectedSampleMidiNote !== null) {
       const incomingNoteIndex = samples.findIndex(
-        sample => sample.midiNoteNumber === $activeMidiNote
+        sample => sample.midiNoteNumber === $selectedSampleMidiNote
       );
       if (incomingNoteIndex !== -1) {
         selectedSampleIndex = incomingNoteIndex;

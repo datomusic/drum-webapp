@@ -36,8 +36,11 @@ const NOTE_DURATION_MS = 100; // Duration before sending Note Off for clicks/aud
 // Create the writable store
 const { subscribe, set, update } = writable<MidiState>(initialState);
 
-// Writable store for the currently active MIDI note (for visual feedback)
+// Writable store for the currently active MIDI note (for momentary visual feedback on button)
 export const activeMidiNote = writable<number | null>(null);
+
+// Writable store for the currently selected sample's MIDI note (for persistent selection/centering)
+export const selectedSampleMidiNote = writable<number | null>(null);
 
 // Function to update MIDI devices when state changes
 function updateMidiDevices(midiAccess: MIDIAccess) {
@@ -126,11 +129,13 @@ function connectDevice(deviceId: string) {
                     
                     // Check for Note On (0x9n) on any channel
                     if ((statusCode & 0xF0) === 0x90 && velocity > 0) {
-                        activeMidiNote.set(noteNumber);
+                        activeMidiNote.set(noteNumber); // Momentary visual feedback
+                        selectedSampleMidiNote.set(noteNumber); // Persistent selection
                     } 
                     // Check for Note Off (0x8n) on any channel, or Note On with velocity 0
                     else if ((statusCode & 0xF0) === 0x80 || ((statusCode & 0xF0) === 0x90 && velocity === 0)) {
-                        activeMidiNote.set(null);
+                        activeMidiNote.set(null); // Clear momentary feedback
+                        // selectedSampleMidiNote remains set until a new note is selected
                     }
                 };
                 console.log('Listening to MIDI input:', input.name);
@@ -181,6 +186,7 @@ function disconnectDevice() {
         isConnected: false,
     }));
     activeMidiNote.set(null); // Clear active note on disconnect
+    selectedSampleMidiNote.set(null); // Clear selected note on disconnect
     console.log('Disconnected from MIDI device.');
 }
 
@@ -193,8 +199,10 @@ function playNote(noteNumber: number) {
         // Status byte 0x90 = Note On on channel 1
         selectedOutput.send([0x90, noteNumber, NOTE_ON_VELOCITY]);
 
-        // Set active note for visual feedback
+        // Set active note for momentary visual feedback
         activeMidiNote.set(noteNumber);
+        // Set selected note for persistent selection/centering
+        selectedSampleMidiNote.set(noteNumber);
 
         // Schedule MIDI Note Off after a delay
         setTimeout(() => {
@@ -206,6 +214,7 @@ function playNote(noteNumber: number) {
             if (get(activeMidiNote) === noteNumber) {
                 activeMidiNote.set(null);
             }
+            // selectedSampleMidiNote remains set here
         }, NOTE_DURATION_MS);
     } else {
         console.warn('No MIDI output selected. Cannot play note.');
