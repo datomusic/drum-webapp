@@ -123,12 +123,13 @@ function connectDevice(deviceId: string) {
                 input.onmidimessage = (event) => {
                     console.log('Incoming MIDI message:', event.data); // Log incoming MIDI notes
                     const [statusCode, noteNumber, velocity] = event.data;
-                    // Note On (0x90) with velocity > 0
-                    if (statusCode === 0x90 && velocity > 0) {
+                    
+                    // Check for Note On (0x9n) on any channel
+                    if ((statusCode & 0xF0) === 0x90 && velocity > 0) {
                         activeMidiNote.set(noteNumber);
                     } 
-                    // Note Off (0x80) or Note On with velocity 0
-                    else if (statusCode === 0x80 || (statusCode === 0x90 && velocity === 0)) {
+                    // Check for Note Off (0x8n) on any channel, or Note On with velocity 0
+                    else if ((statusCode & 0xF0) === 0x80 || ((statusCode & 0xF0) === 0x90 && velocity === 0)) {
                         activeMidiNote.set(null);
                     }
                 };
