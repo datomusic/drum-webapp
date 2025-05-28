@@ -22,5 +22,7 @@
   "select_midi_device": "Kies je MIDI-poort:",
   "choose_device_option": "Selecteer er een...",
   "no_midi_devices_found": "Sluit je Dato DRUM aan om te beginnen.",
-  "firmware_version_label": "Firmware: {version}"
+  "firmware_version_label": "Firmware: {version}",
+  "reboot_bootloader_button": "Opnieuw opstarten naar bootloader",
+  "reboot_bootloader_confirm": "Dit zal het apparaat opnieuw opstarten naar de bootloader-modus. Doorgaan?"
 }

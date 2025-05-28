@@ -22,5 +22,7 @@
   "select_midi_device": "Choose your MIDI port:",
   "choose_device_option": "Select one...",
   "no_midi_devices_found": "Plug in your Dato DRUM to start.",
-  "firmware_version_label": "{version}"
+  "firmware_version_label": "Firmware: {version}",
+  "reboot_bootloader_button": "Reboot to Bootloader",
+  "reboot_bootloader_confirm": "This will reboot the device to bootloader mode. Continue?"
 }

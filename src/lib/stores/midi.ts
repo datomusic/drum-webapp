@@ -26,9 +26,12 @@ const initialState: MidiState = {
     firmwareVersion: null, // ADDED: Initialize firmwareVersion
 };
 
-// ADDED: Constants from midi_tool.html for Universal SysEx Identity Request
+// ADDED: Constants from midi_tool.html for Universal SysEx Identity Request and Dato/DRUM specific commands
+const SYSEX_DATO_ID = 0x7D;
+const SYSEX_DRUM_ID = 0x65;
 const SYSEX_UNIVERSAL_NONREALTIME_ID = 0x7E;
 const SYSEX_ALL_ID = 0x7F;
+const SYSEX_REBOOT_BOOTLOADER = 0x0B; // ADDED: Constant for reboot to bootloader
 
 // Define the filter array for Dato DRUM devices
 // A device will match if its name contains any of these strings (case-insensitive)
@@ -257,6 +260,26 @@ function requestIdentity() {
     console.log('Sent SysEx Identity Request:', message);
 }
 
+// ADDED: Function to send Reboot to Bootloader SysEx command
+function rebootToBootloader() {
+    const { selectedOutput } = get(midiStore);
+    if (!selectedOutput) {
+        console.warn('No MIDI output selected. Cannot send reboot command.');
+        return;
+    }
+
+    const message = [
+        0xF0,
+        SYSEX_DATO_ID,
+        SYSEX_DRUM_ID,
+        SYSEX_REBOOT_BOOTLOADER,
+        0xF7
+    ];
+
+    selectedOutput.send(message);
+    console.log('Sent SysEx Reboot to Bootloader command:', message);
+}
+
 // Function to play a MIDI note (for clicks/auditioning)
 function playNote(noteNumber: number) {
     const { selectedOutput } = get(midiStore);
@@ -296,4 +319,5 @@ export const midiStore = {
     disconnectDevice,
     playNote, // Export the new playNote function
     requestIdentity, // ADDED: Export the new requestIdentity function
+    rebootToBootloader, // ADDED: Export the new rebootToBootloader function
 };
