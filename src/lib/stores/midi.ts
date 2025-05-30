@@ -51,6 +51,7 @@ const MIDI_NOTE_OFF_CHANNEL1 = 0x80;
 // Define the filter array for Dato DRUM devices
 // A device will match if its name contains any of these strings (case-insensitive)
 const DRUM_DEVICE_FILTERS = ['DRUM', 'Dato DRUM', 'Pico'];
+const DRUM_DEVICE_FILTERS_LOWER = DRUM_DEVICE_FILTERS.map(f => f.toLowerCase());
 
 // Constants for MIDI note playback
 const NOTE_ON_VELOCITY = 127; // Max velocity
@@ -174,24 +175,14 @@ function connectDevice(deviceId: string) {
         let input: MIDIInput | undefined;
 
         if (output) {
-            // Strategy 1: Try to find an input with the exact same name as the selected output
+            // Strategy 1: Try to find an input with the exact same name as the selected output.
             input = Array.from(currentInputs.values()).find(inputPort => inputPort.name === output.name);
 
-            // Strategy 2: If not found, try to find an input whose name contains the output's name (case-insensitive)
-            if (!input) {
-                const outputNameLower = output.name?.toLowerCase();
-                if (outputNameLower) {
-                    input = Array.from(currentInputs.values()).find(inputPort => 
-                        inputPort.name?.toLowerCase().includes(outputNameLower)
-                    );
-                }
-            }
-
-            // Strategy 3: If still not found, fall back to the general DRUM_DEVICE_FILTERS for inputs
+            // Strategy 2: If not found, try to find an input matching DRUM_DEVICE_FILTERS (case-insensitive).
             if (!input) {
                 input = Array.from(currentInputs.values()).find(inputPort => {
                     const inputNameLower = inputPort.name?.toLowerCase();
-                    return inputNameLower && DRUM_DEVICE_FILTERS.some(filter => inputNameLower.includes(filter));
+                    return inputNameLower && DRUM_DEVICE_FILTERS_LOWER.some(filter => inputNameLower.includes(filter));
                 });
             }
 
