@@ -38,7 +38,7 @@
     shadow-sm
     hover:shadow-md
     transition-all duration-150 ease-in-out
-    focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white
+    cursor-pointer
 "
 style="{backgroundStyle}"
 on:click={handleClick}
