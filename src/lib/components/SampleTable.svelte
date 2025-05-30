@@ -1,20 +1,20 @@
 <script lang="ts">
     import { _ } from 'svelte-i18n';
     import Track from './Track.svelte'; // Import the Track component
-    import { hexToRgb, rgbToHex, simulateButtonColor } from '$lib/utils/colors'; // Import color utilities
+    import { rgbToHex, simulateButtonColor } from '$lib/utils/colors'; // Update import: removed hexToRgb
 
-    // Define specific color palettes for each track (these are the *raw LED* colors)
-    const track1LedColors = [
-        '#FFFF00', '#FFE100', '#FFC300', '#FFA500', '#FFFF20', '#FFE120', '#FFC320', '#FFA520'
+    // Define specific color palettes for each track as RGB arrays (raw LED colors)
+    const track1LedColors: [number, number, number][] = [
+        [255, 255, 0], [255, 225, 0], [255, 195, 0], [255, 165, 0], [255, 255, 32], [255, 225, 32], [255, 195, 32], [255, 165, 32]
     ];
-    const track2LedColors = [
-        '#00FF00', '#00FF1E', '#00FF3C', '#00FF5A', '#10FF10', '#10FF1E', '#10FF3C', '#20FF5A',
+    const track2LedColors: [number, number, number][] = [
+        [0, 255, 0], [0, 255, 30], [0, 255, 60], [0, 255, 90], [16, 255, 16], [16, 255, 30], [16, 255, 60], [32, 255, 90],
     ];
-    const track3LedColors = [
-        '#0000FF', '#0028FF', '#0050FF', '#0078FF', '#1010FF', '#1028FF', '#2050FF', '#3078FF',
+    const track3LedColors: [number, number, number][] = [
+        [0, 0, 255], [0, 40, 255], [0, 80, 255], [0, 120, 255], [16, 16, 255], [16, 40, 255], [32, 80, 255], [48, 120, 255],
     ];
-    const track4LedColors = [
-        '#FF0000', '#FF0020', '#FF0040', '#FF0060', '#FF1010', '#FF1020', '#FF2040', '#FF2060',
+    const track4LedColors: [number, number, number][] = [
+        [255, 0, 0], [255, 0, 32], [255, 0, 64], [255, 0, 96], [255, 16, 16], [255, 16, 32], [255, 32, 64], [255, 32, 96],
     ];
 
     /**
@@ -22,10 +22,10 @@
      * The order of notes (ascending or descending) is determined by the start and end notes.
      * @param startNote The first MIDI note number for the track.
      * @param endNote The last MIDI note number for the track.
-     * @param ledColors An array of hex color strings representing the LED colors.
+     * @param ledColors An array of RGB color arrays representing the LED colors.
      * @returns An array of sample objects { color: string, midiNoteNumber: number }.
      */
-    function generateTrackSamples(startNote: number, endNote: number, ledColors: string[]) {
+    function generateTrackSamples(startNote: number, endNote: number, ledColors: [number, number, number][]) {
         const samples = [];
         let colorIndex = 0;
 
@@ -34,25 +34,16 @@
         const condition = (i: number) => (startNote <= endNote ? i <= endNote : i >= endNote);
 
         for (let i = startNote; condition(i); i += step) {
-            const ledHexColor = ledColors[colorIndex % ledColors.length];
-            const ledRgbColor = hexToRgb(ledHexColor);
+            const ledRgbColor = ledColors[colorIndex % ledColors.length];
+            
+            // Simulate the button color based on LED color and physical properties
+            const simulatedRgbColor = simulateButtonColor(ledRgbColor);
+            const simulatedHexColor = rgbToHex(simulatedRgbColor);
 
-            if (ledRgbColor) {
-                // Simulate the button color based on LED color and physical properties
-                const simulatedRgbColor = simulateButtonColor(ledRgbColor);
-                const simulatedHexColor = rgbToHex(simulatedRgbColor);
-
-                samples.push({
-                    color: simulatedHexColor, // Use the simulated color for the UI
-                    midiNoteNumber: i,
-                });
-            } else {
-                console.warn(`Invalid hex color: ${ledHexColor}. Using default fallback.`);
-                samples.push({
-                    color: '#808080', // Fallback to a neutral grey if hex conversion fails
-                    midiNoteNumber: i,
-                });
-            }
+            samples.push({
+                color: simulatedHexColor, // Use the simulated color for the UI
+                midiNoteNumber: i,
+            });
             colorIndex++;
         }
         return samples;

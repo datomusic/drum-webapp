@@ -7,25 +7,6 @@ const BASE_COLOR_RGB = [120, 120, 120]; // Grey when off (R, G, B)
 const ATTENUATION_FACTORS = [1, 1, 1]; // RGB attenuation factors (customize per your measurements)
 
 /**
- * Converts a hex color string (e.g., "#RRGGBB") to an RGB array.
- * @param hex The hex color string.
- * @returns An array [R, G, B] or null if invalid.
- */
-export function hexToRgb(hex: string): [number, number, number] | null {
-    const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-    hex = hex.replace(shorthandRegex, function(m, r, g, b) {
-        return r + r + g + g + b + b;
-    });
-
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16)
-    ] : null;
-}
-
-/**
  * Converts an RGB array [R, G, B] to a hex color string (e.g., "#RRGGBB").
  * @param rgb An array [R, G, B].
  * @returns A hex color string.
