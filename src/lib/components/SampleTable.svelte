@@ -3,17 +3,17 @@
     import Track from './Track.svelte'; // Import the Track component
 
     // Define specific color palettes for each track
-    const yellowHues = [
-        '#FFD700', '#FFC107', '#FFA000', '#FFB300', '#FFCA28', '#FFD54F', '#FFE082', '#FFECB3'
+    const track1Colors = [
+        '#FFFF00', '#FFE100', '#FFC300', '#FFA500', '#FFFF20', '#FFE120', '#FFC320', '#FFA520'
     ];
-    const greenHues = [
-        '#4CAF50', '#66BB6A', '#81C784', '#9CCC65', '#AED581', '#C5E1A5', '#DCE775', '#E6EE9C'
+    const track2Colors = [
+        '#00FF00', '#00FF1E', '#00FF3C', '#00FF5A', '#10FF10', '#10FF1E', '#10FF3C', '#20FF5A',
     ];
-    const blueHues = [
-        '#2196F3', '#42A5F5', '#64B5F6', '#90CAF9', '#BBDEFB', '#E3F2FD', '#B3E5FC', '#81D4FA'
+    const track3Colors = [
+        '#0000FF', '#0028FF', '#0050FF', '#0078FF', '#1010FF', '#1028FF', '#2050FF', '#3078FF',
     ];
-    const redHues = [
-        '#F44336', '#E57373', '#EF5350', '#EF9A9A', '#FFCDD2', '#FFEBEE', '#FF8A80', '#FF5252'
+    const track4Colors = [
+        '#FF0000', '#FF0020', '#FF0040', '#FF0060', '#FF1010', '#FF1020', '#FF2040', '#FF2060',
     ];
 
     /**
@@ -51,10 +51,10 @@
     }
 
     // Generate samples for each track with their respective color palettes and MIDI note ranges
-    const track1Samples = generateTrackSamples(31, 24, yellowHues);
-    const track2Samples = generateTrackSamples(23, 16, greenHues);
-    const track3Samples = generateTrackSamples(15, 8, blueHues);
-    const track4Samples = generateTrackSamples(7, 0, redHues);
+    const track1Samples = generateTrackSamples(24, 31, track1Colors);
+    const track2Samples = generateTrackSamples(16, 23, track2Colors);
+    const track3Samples = generateTrackSamples(8, 15, track3Colors);
+    const track4Samples = generateTrackSamples(0, 7, track4Colors);
 
     // Group tracks with their samples for easier iteration
     const tracks = [
