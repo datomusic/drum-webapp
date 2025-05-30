@@ -26,12 +26,28 @@ const initialState: MidiState = {
     firmwareVersion: null, // ADDED: Initialize firmwareVersion
 };
 
+// MIDI SysEx constants
+const SYSEX_START = 0xF0;
+const SYSEX_END = 0xF7;
+
 // ADDED: Constants from midi_tool.html for Universal SysEx Identity Request and Dato/DRUM specific commands
 const SYSEX_DATO_ID = 0x7D;
 const SYSEX_DRUM_ID = 0x65;
 const SYSEX_UNIVERSAL_NONREALTIME_ID = 0x7E;
 const SYSEX_ALL_ID = 0x7F;
 const SYSEX_REBOOT_BOOTLOADER = 0x0B; // ADDED: Constant for reboot to bootloader
+
+// SysEx command constants
+const SYSEX_GENERAL_INFO = 0x06;
+const SYSEX_IDENTITY_REQUEST = 0x01;
+const SYSEX_IDENTITY_REPLY = 0x02;
+
+// MIDI message constants
+const MIDI_STATUS_MASK = 0xF0;
+const MIDI_NOTE_ON = 0x90;
+const MIDI_NOTE_OFF = 0x80;
+const MIDI_NOTE_ON_CHANNEL1 = 0x90;
+const MIDI_NOTE_OFF_CHANNEL1 = 0x80;
 
 // Define the filter array for Dato DRUM devices
 // A device will match if its name contains any of these strings (case-insensitive)
@@ -136,17 +152,26 @@ function connectDevice(deviceId: string) {
                     const data = event.data;
                     console.log('Incoming MIDI message:', data); // Log incoming MIDI notes
                     
+                    const SYSEX_START = 0xF0;
+                    
                     // ADDED: SysEx message parsing for Universal Identity Reply
-                    if (data[0] === 0xF0) {
+                    if (data[0] === SYSEX_START) {
                         console.log('Received SysEx message:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
                         
+                        const SYSEX_EXTRA_BYTE = 0x00;
+                    
                         // Check if there's an unexpected 00 byte after F0 (some devices send F0 00 ...)
-                        const hasExtraByte = data[1] === 0x00;
+                        const hasExtraByte = data[1] === SYSEX_EXTRA_BYTE;
                         const offset = hasExtraByte ? 1 : 0;
+                        
+                        // SysEx command constants
+                        const SYSEX_GENERAL_INFO = 0x06;
+                        const SYSEX_IDENTITY_REPLY = 0x02;
                         
                         // Universal Non-Realtime Identity Reply (F0 7E <channel> 06 02 ...)
                         if (data[1 + offset] === SYSEX_UNIVERSAL_NONREALTIME_ID && 
-                            data[3 + offset] === 0x06 && data[4 + offset] === 0x02) {
+                            data[3 + offset] === SYSEX_GENERAL_INFO && 
+                            data[4 + offset] === SYSEX_IDENTITY_REPLY) {
                             
                             // Manufacturer ID: data[5 + offset]
                             // Device Family: (data[7 + offset] << 7) | data[6 + offset]
@@ -169,16 +194,22 @@ function connectDevice(deviceId: string) {
                     }
                     // END ADDED SysEx parsing
 
+                    // MIDI message constants
+                    const MIDI_STATUS_MASK = 0xF0;
+                    const MIDI_NOTE_ON = 0x90;
+                    const MIDI_NOTE_OFF = 0x80;
+                    
                     // Existing Note On/Off handling
                     const [statusCode, noteNumber, velocity] = event.data;
                     
                     // Check for Note On (0x9n) on any channel
-                    if ((statusCode & 0xF0) === 0x90 && velocity > 0) {
+                    if ((statusCode & MIDI_STATUS_MASK) === MIDI_NOTE_ON && velocity > 0) {
                         activeMidiNote.set(noteNumber); // Momentary visual feedback
                         selectedSampleMidiNote.set(noteNumber); // Persistent selection
                     } 
                     // Check for Note Off (0x8n) on any channel, or Note On with velocity 0
-                    else if ((statusCode & 0xF0) === 0x80 || ((statusCode & 0xF0) === 0x90 && velocity === 0)) {
+                    else if ((statusCode & MIDI_STATUS_MASK) === MIDI_NOTE_OFF || 
+                            ((statusCode & MIDI_STATUS_MASK) === MIDI_NOTE_ON && velocity === 0)) {
                         activeMidiNote.set(null); // Clear momentary feedback
                         // selectedSampleMidiNote remains set until a new note is selected
                     }
@@ -247,13 +278,18 @@ function requestIdentity() {
         return;
     }
 
+    const SYSEX_START = 0xF0;
+    const SYSEX_END = 0xF7;
+    const SYSEX_GENERAL_INFO = 0x06;
+    const SYSEX_IDENTITY_REQUEST = 0x01;
+    
     const message = [
-        0xF0,
+        SYSEX_START,
         SYSEX_UNIVERSAL_NONREALTIME_ID, // 0x7E
         SYSEX_ALL_ID,                   // 0x7F (all devices)
-        0x06,                           // General Information
-        0x01,                           // Identity Request
-        0xF7
+        SYSEX_GENERAL_INFO,             // General Information
+        SYSEX_IDENTITY_REQUEST,         // Identity Request
+        SYSEX_END
     ];
     
     selectedOutput.send(message);
@@ -268,17 +304,24 @@ function rebootToBootloader() {
         return;
     }
 
+    const SYSEX_START = 0xF0;
+    const SYSEX_END = 0xF7;
+    
     const message = [
-        0xF0,
+        SYSEX_START,
         SYSEX_DATO_ID,
         SYSEX_DRUM_ID,
         SYSEX_REBOOT_BOOTLOADER,
-        0xF7
+        SYSEX_END
     ];
 
     selectedOutput.send(message);
     console.log('Sent SysEx Reboot to Bootloader command:', message);
 }
+
+// MIDI message constants
+const MIDI_NOTE_ON_CHANNEL1 = 0x90;
+const MIDI_NOTE_OFF_CHANNEL1 = 0x80;
 
 // Function to play a MIDI note (for clicks/auditioning)
 function playNote(noteNumber: number) {
@@ -287,7 +330,7 @@ function playNote(noteNumber: number) {
     if (selectedOutput) {
         // MIDI Note On message: [status byte, note number, velocity]
         // Status byte 0x90 = Note On on channel 1
-        selectedOutput.send([0x90, noteNumber, NOTE_ON_VELOCITY]);
+        selectedOutput.send([MIDI_NOTE_ON_CHANNEL1, noteNumber, NOTE_ON_VELOCITY]);
 
         // Set active note for momentary visual feedback
         activeMidiNote.set(noteNumber);
@@ -298,7 +341,7 @@ function playNote(noteNumber: number) {
         setTimeout(() => {
             // MIDI Note Off message: [status byte, note number, velocity]
             // Status byte 0x80 = Note Off on channel 1
-            selectedOutput.send([0x80, noteNumber, NOTE_OFF_VELOCITY]);
+            selectedOutput.send([MIDI_NOTE_OFF_CHANNEL1, noteNumber, NOTE_OFF_VELOCITY]);
             // Clear active note after duration, but only if it's still this note
             // This prevents clearing if another note was pressed quickly after
             if (get(activeMidiNote) === noteNumber) {
