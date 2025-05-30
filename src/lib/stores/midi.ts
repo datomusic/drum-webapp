@@ -1,4 +1,5 @@
 import { writable, get } from 'svelte/store';
+import { LATEST_FIRMWARE_VERSION } from '$lib/config/firmware'; // Import LATEST_FIRMWARE_VERSION
 
 interface MidiState {
     access: MIDIAccess | null;
@@ -72,6 +73,7 @@ function parseSysExIdentityReply(data: Uint8Array): string | null {
 
         const fwVersion = `${major}.${minor}.${patch}-dev.${commits}`;
         console.log(`Identified device firmware: ${fwVersion}`);
+        console.log(`Latest available firmware: ${LATEST_FIRMWARE_VERSION}`); // NEW: Log latest firmware version
         return fwVersion;
     } else {
         console.log('SysEx message is not a recognized Identity Reply or is malformed.');
