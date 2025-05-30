@@ -147,8 +147,12 @@ async function requestMidiAccess() {
         };
         updateMidiDevices(midiAccess);
         console.log('MIDI access granted:', midiAccess);
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error('Failed to get MIDI access:', err);
+        let errorMessage = 'Failed to get MIDI access. Please ensure your device is connected and browser permissions are granted.';
+        if (err instanceof Error) {
+            errorMessage = err.message;
+        }
         update(state => ({
             ...state,
             access: null,
@@ -157,7 +161,7 @@ async function requestMidiAccess() {
             selectedInput: null,
             selectedOutput: null,
             isConnected: false,
-            error: err.message || 'Failed to get MIDI access. Please ensure your device is connected and browser permissions are granted.',
+            error: errorMessage,
         }));
     } finally {
         update(state => ({ ...state, isRequestingAccess: false }));
