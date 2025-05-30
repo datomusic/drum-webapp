@@ -1,5 +1,6 @@
 <script lang="ts">
   import { midiStore, activeMidiNote } from '$lib/stores/midi'; // Import activeMidiNote
+  import { colorFilters } from '$lib/stores/colorFilters'; // Import colorFilters store
   import { get } from 'svelte/store';
 
   /**
@@ -14,6 +15,14 @@
 
   // Reactive variable to determine if this button is currently active
   $: isActive = $activeMidiNote === midiNoteNumber;
+
+  // Reactive variable to generate the CSS filter style based on the colorFilters store
+  $: filterStyle = `
+    filter:
+      saturate(${$colorFilters.saturation})
+      brightness(${$colorFilters.brightness})
+      contrast(${$colorFilters.contrast});
+  `;
 
   function handleClick() {
     // Call the centralized playNote function from the midiStore
@@ -30,7 +39,7 @@
     transition-all duration-150 ease-in-out
     focus:outline-none
   "
-  style="background-color: {color};"
+  style="background-color: {color}; {filterStyle}"
   on:click={handleClick}
   on:keydown
 >

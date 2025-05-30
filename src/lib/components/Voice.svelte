@@ -1,5 +1,6 @@
 <script lang="ts">
   import { midiStore } from '$lib/stores/midi';
+  import { colorFilters } from '$lib/stores/colorFilters'; // Import colorFilters store
 
   // This component represents the "Voice" settings for a sample slot.
   // It displays an icon indicating its purpose.
@@ -24,6 +25,14 @@
   // Reactive statement to determine the background style
   $: backgroundStyle = color ? `background-color: ${color};` : 'background-color: #e5e7eb;'; // Tailwind's bg-gray-200
 
+  // Reactive variable to generate the CSS filter style based on the colorFilters store
+  $: filterStyle = `
+    filter:
+      saturate(${$colorFilters.saturation})
+      brightness(${$colorFilters.brightness})
+      contrast(${$colorFilters.contrast});
+  `;
+
   // Function to handle click event and play the MIDI note
   function handleClick() {
     midiStore.playNote(midiNoteNumber);
@@ -40,7 +49,7 @@
     transition-all duration-150 ease-in-out
     cursor-pointer
 "
-style="{backgroundStyle}"
+style="{backgroundStyle} {filterStyle}"
 on:click={handleClick}
 >
   <img src={imageSrc} alt="Voice" class="w-16 h-16" />
