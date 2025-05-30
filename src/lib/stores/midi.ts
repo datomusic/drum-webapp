@@ -111,41 +111,120 @@ function handleMidiNoteMessage(data: Uint8Array): void {
 // Create the writable store
 const { subscribe, set, update } = writable<MidiState>(initialState);
 
+// --- Start of Internal State Update Actions ---
+
+function _setIsRequestingAccess(isRequesting: boolean) {
+    update(state => ({
+        ...state,
+        isRequestingAccess: isRequesting,
+        error: isRequesting ? null : state.error, // Clear error only when starting request
+    }));
+}
+
+function _setMidiAccessGranted(midiAccess: MIDIAccess) {
+    update(state => ({
+        ...state,
+        access: midiAccess,
+        inputs: midiAccess.inputs,
+        outputs: midiAccess.outputs,
+        error: null, // Successfully got access, clear previous errors
+    }));
+}
+
+function _setMidiAccessFailed(errorMessage: string) {
+    update(state => ({
+        ...state,
+        access: null,
+        inputs: null,
+        outputs: null,
+        selectedOutput: null,
+        selectedInput: null,
+        isConnected: false,
+        firmwareVersion: null,
+        error: errorMessage,
+    }));
+}
+
+function _setDeviceConnected(output: MIDIOutput, input: MIDIInput | null) {
+    update(state => ({
+        ...state,
+        selectedOutput: output,
+        selectedInput: input,
+        isConnected: true,
+        firmwareVersion: null, // Reset firmware version, expect new SysEx reply
+        error: null, // Successful connection, clear previous errors
+    }));
+}
+
+function _setDeviceDisconnected() {
+    update(state => ({
+        ...state,
+        selectedOutput: null,
+        selectedInput: null,
+        isConnected: false,
+        firmwareVersion: null,
+        error: null, // Disconnecting is a clean operation, clear errors
+    }));
+}
+
+function _setDeviceConnectionError(errorMessage: string) {
+    update(state => ({
+        ...state,
+        selectedOutput: null,
+        selectedInput: null,
+        isConnected: false,
+        firmwareVersion: null,
+        error: errorMessage,
+    }));
+}
+
+function _setFirmwareVersion(fwVersion: string | null) {
+    update(state => ({
+        ...state,
+        firmwareVersion: fwVersion, // Update firmware, don't touch other state like error
+    }));
+}
+
+// Action to update the list of available MIDI devices, typically on state change
+function _updateAvailableMidiDevices(midiAccess: MIDIAccess) {
+    update(state => ({
+        ...state,
+        access: midiAccess, // Keep access object updated
+        inputs: midiAccess.inputs,
+        outputs: midiAccess.outputs,
+        // Do not modify 'error' here, as a connection might be active/failed
+        // while the device list is merely refreshing.
+    }));
+}
+
+// --- End of Internal State Update Actions ---
+
 // Writable store for the currently active MIDI note (for momentary visual feedback on button)
 export const activeMidiNote = writable<number | null>(null);
 
 // Writable store for the currently selected sample's MIDI note (for persistent selection/centering)
 export const selectedSampleMidiNote = writable<number | null>(null);
 
-// Function to update MIDI devices when state changes
-function updateMidiDevices(midiAccess: MIDIAccess) {
-    update(state => ({
-        ...state,
-        access: midiAccess,
-        inputs: midiAccess.inputs,
-        outputs: midiAccess.outputs,
-        error: null,
-    }));
-}
-
 // Request MIDI access from the browser
 async function requestMidiAccess() {
-    update(state => ({ ...state, isRequestingAccess: true, error: null }));
+    _setIsRequestingAccess(true);
     try {
         if (!navigator.requestMIDIAccess) {
             throw new Error('Web MIDI API is not supported in this browser.');
         }
 
         const midiAccess = await navigator.requestMIDIAccess({ sysex: true });
+        _setMidiAccessGranted(midiAccess); // Set initial access, devices, and clear error
+
         midiAccess.onstatechange = (event) => {
             console.log('MIDI state change:', event.port.name, event.port.state);
-            updateMidiDevices(midiAccess); // Re-update devices on state change
-            // If the selected device disconnects, clear selection
+            _updateAvailableMidiDevices(midiAccess); // Re-update available devices
+            // If the selected device disconnects, trigger disconnect logic
             if (event.port.state === 'disconnected' && get(midiStore).selectedOutput?.id === event.port.id) {
-                disconnectDevice();
+                disconnectDevice(); // This will use _setDeviceDisconnected
             }
         };
-        updateMidiDevices(midiAccess);
+        // _setMidiAccessGranted already called, no need for another update here.
         console.log('MIDI access granted:', midiAccess);
     } catch (err: unknown) {
         console.error('Failed to get MIDI access:', err);
@@ -153,18 +232,9 @@ async function requestMidiAccess() {
         if (err instanceof Error) {
             errorMessage = err.message;
         }
-        update(state => ({
-            ...state,
-            access: null,
-            inputs: null,
-            outputs: null,
-            selectedInput: null,
-            selectedOutput: null,
-            isConnected: false,
-            error: errorMessage,
-        }));
+        _setMidiAccessFailed(errorMessage);
     } finally {
-        update(state => ({ ...state, isRequestingAccess: false }));
+        _setIsRequestingAccess(false);
     }
 }
 
@@ -199,10 +269,7 @@ function connectDevice(deviceId: string) {
                     if (data[0] === SYSEX_START) {
                         const fwVersion = parseSysExIdentityReply(data);
                         if (fwVersion) {
-                            update(state => ({
-                                ...state,
-                                firmwareVersion: fwVersion,
-                            }));
+                            _setFirmwareVersion(fwVersion);
                         }
                     } else {
                         // Handle non-SysEx messages (like Note On/Off)
@@ -253,13 +320,7 @@ function disconnectDevice() {
     if (currentMidiState.selectedInput) {
         currentMidiState.selectedInput.onmidimessage = null; // Remove listener
     }
-    update(state => ({
-        ...state,
-        selectedOutput: null,
-        selectedInput: null,
-        isConnected: false,
-        firmwareVersion: null,
-    }));
+    _setDeviceDisconnected();
     activeMidiNote.set(null); // Clear active note on disconnect
     selectedSampleMidiNote.set(null); // Clear selected note on disconnect
     console.log('Disconnected from MIDI device.');
