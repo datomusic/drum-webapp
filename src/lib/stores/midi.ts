@@ -57,6 +57,56 @@ const NOTE_ON_VELOCITY = 127; // Max velocity
 const NOTE_OFF_VELOCITY = 0; // Velocity for note off (often ignored, but good practice)
 const NOTE_DURATION_MS = 100; // Duration before sending Note Off for clicks/auditioning
 
+// Helper function to parse SysEx Identity Reply messages
+function parseSysExIdentityReply(data: Uint8Array): string | null {
+    console.log('Received SysEx message for parsing:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
+
+    const SYSEX_EXTRA_BYTE = 0x00; // Some devices might send an extra 0x00 after 0xF0
+
+    // Check if there's an unexpected 00 byte after F0 (data[0] is SYSEX_START)
+    const hasExtraByte = data[1] === SYSEX_EXTRA_BYTE;
+    const offset = hasExtraByte ? 1 : 0;
+
+    // Check for Universal Non-Realtime Identity Reply
+    // Expected structure: F0 7E <device_id> 06 02 ... F7
+    // data[0] = F0 (SYSEX_START)
+    // data[1+offset] = 7E (SYSEX_UNIVERSAL_NONREALTIME_ID)
+    // data[2+offset] = <device_id> (SYSEX_ALL_ID in request, specific ID in reply)
+    // data[3+offset] = 06 (SYSEX_GENERAL_INFO)
+    // data[4+offset] = 02 (SYSEX_IDENTITY_REPLY)
+    // Firmware version starts at data[10+offset] for Dato DRUM
+    if (data.length > 13 + offset && // Ensure data is long enough for firmware version
+        data[1 + offset] === SYSEX_UNIVERSAL_NONREALTIME_ID &&
+        data[3 + offset] === SYSEX_GENERAL_INFO &&
+        data[4 + offset] === SYSEX_IDENTITY_REPLY) {
+
+        const major = data[10 + offset];
+        const minor = data[11 + offset];
+        const patch = data[12 + offset];
+        const commits = data[13 + offset]; // Dato-specific: number of commits
+
+        const fwVersion = `${major}.${minor}.${patch} (${commits} commits)`;
+        console.log(`Identified device firmware: ${fwVersion}`);
+        return fwVersion;
+    } else {
+        console.log('SysEx message is not a recognized Identity Reply or is malformed.');
+        return null;
+    }
+}
+
+// Helper function to handle MIDI Note On/Off messages
+function handleMidiNoteMessage(data: Uint8Array): void {
+    const [statusCode, noteNumber, velocity] = data;
+    const status = statusCode & MIDI_STATUS_MASK;
+
+    if (status === MIDI_NOTE_ON && velocity > 0) {
+        activeMidiNote.set(noteNumber);
+        selectedSampleMidiNote.set(noteNumber);
+    } else if (status === MIDI_NOTE_OFF || (status === MIDI_NOTE_ON && velocity === 0)) {
+        activeMidiNote.set(null);
+    }
+}
+
 // Create the writable store
 const { subscribe, set, update } = writable<MidiState>(initialState);
 
@@ -149,61 +199,19 @@ function connectDevice(deviceId: string) {
             if (input) {
                 input.onmidimessage = (event) => {
                     const data = event.data;
-                    console.log('Incoming MIDI message:', data);
-                    
-                    const SYSEX_START = 0xF0;
-                    
+                    console.log('Incoming MIDI message:', data); // General log for any incoming message
+
                     if (data[0] === SYSEX_START) {
-                        console.log('Received SysEx message:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
-                        
-                        const SYSEX_EXTRA_BYTE = 0x00;
-                    
-                        // Check if there's an unexpected 00 byte after F0
-                        const hasExtraByte = data[1] === SYSEX_EXTRA_BYTE;
-                        const offset = hasExtraByte ? 1 : 0;
-                        
-                        // SysEx command constants
-                        const SYSEX_GENERAL_INFO = 0x06;
-                        const SYSEX_IDENTITY_REPLY = 0x02;
-                        
-                        // Universal Non-Realtime Identity Reply
-                        if (data[1 + offset] === SYSEX_UNIVERSAL_NONREALTIME_ID && 
-                            data[3 + offset] === SYSEX_GENERAL_INFO && 
-                            data[4 + offset] === SYSEX_IDENTITY_REPLY) {
-                            
-                            const major = data[10 + offset];
-                            const minor = data[11 + offset];
-                            const patch = data[12 + offset];
-                            const commits = data[13 + offset];
-
-                            const fwVersion = `${major}.${minor}.${patch} (${commits} commits)`;
-                            console.log(`Identified device firmware: ${fwVersion}`);
-
+                        const fwVersion = parseSysExIdentityReply(data);
+                        if (fwVersion) {
                             update(state => ({
                                 ...state,
                                 firmwareVersion: fwVersion,
                             }));
-                        } else {
-                            console.log('Unknown SysEx message format - couldn\'t parse identity reply.');
                         }
-                    }
-
-                    // MIDI message constants
-                    const MIDI_STATUS_MASK = 0xF0;
-                    const MIDI_NOTE_ON = 0x90;
-                    const MIDI_NOTE_OFF = 0x80;
-                    
-                    const [statusCode, noteNumber, velocity] = event.data;
-                    
-                    // Check for Note On (0x9n) on any channel
-                    if ((statusCode & MIDI_STATUS_MASK) === MIDI_NOTE_ON && velocity > 0) {
-                        activeMidiNote.set(noteNumber);
-                        selectedSampleMidiNote.set(noteNumber);
-                    } 
-                    // Check for Note Off (0x8n) on any channel, or Note On with velocity 0
-                    else if ((statusCode & MIDI_STATUS_MASK) === MIDI_NOTE_OFF || 
-                            ((statusCode & MIDI_STATUS_MASK) === MIDI_NOTE_ON && velocity === 0)) {
-                        activeMidiNote.set(null);
+                    } else {
+                        // Handle non-SysEx messages (like Note On/Off)
+                        handleMidiNoteMessage(data);
                     }
                 };
                 console.log('Listening to MIDI input:', input.name);
