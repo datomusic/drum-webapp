@@ -1,6 +1,5 @@
 import { writable, get } from 'svelte/store';
 
-// Define types for MIDI state
 interface MidiState {
     access: MIDIAccess | null;
     inputs: MIDIInputMap | null;
@@ -10,10 +9,9 @@ interface MidiState {
     isConnected: boolean;
     error: string | null;
     isRequestingAccess: boolean;
-    firmwareVersion: string | null; // ADDED: To store the parsed firmware version
+    firmwareVersion: string | null;
 }
 
-// Initial state for the MIDI store
 const initialState: MidiState = {
     access: null,
     inputs: null,
@@ -26,7 +24,6 @@ const initialState: MidiState = {
     firmwareVersion: null,
 };
 
-// MIDI SysEx constants
 const SYSEX_START = 0xF0;
 const SYSEX_END = 0xF7;
 
@@ -36,47 +33,34 @@ const SYSEX_UNIVERSAL_NONREALTIME_ID = 0x7E;
 const SYSEX_ALL_ID = 0x7F;
 const SYSEX_REBOOT_BOOTLOADER = 0x0B;
 
-// SysEx command constants
 const SYSEX_GENERAL_INFO = 0x06;
 const SYSEX_IDENTITY_REQUEST = 0x01;
 const SYSEX_IDENTITY_REPLY = 0x02;
 
-// MIDI message constants
 const MIDI_STATUS_MASK = 0xF0;
 const MIDI_NOTE_ON = 0x90;
 const MIDI_NOTE_OFF = 0x80;
 const MIDI_NOTE_ON_CHANNEL1 = 0x90;
 const MIDI_NOTE_OFF_CHANNEL1 = 0x80;
 
-// Define the filter array for Dato DRUM devices
-// A device will match if its name contains any of these strings (case-insensitive)
 const DRUM_DEVICE_FILTERS = ['DRUM', 'Dato DRUM', 'Pico'];
 const DRUM_DEVICE_FILTERS_LOWER = DRUM_DEVICE_FILTERS.map(f => f.toLowerCase());
 
-// Constants for MIDI note playback
-const NOTE_ON_VELOCITY = 127; // Max velocity
-const NOTE_OFF_VELOCITY = 0; // Velocity for note off (often ignored, but good practice)
-const NOTE_DURATION_MS = 100; // Duration before sending Note Off for clicks/auditioning
+const NOTE_ON_VELOCITY = 127;
+const NOTE_OFF_VELOCITY = 0;
+const NOTE_DURATION_MS = 100;
 
-// Helper function to parse SysEx Identity Reply messages
 function parseSysExIdentityReply(data: Uint8Array): string | null {
     console.log('Received SysEx message for parsing:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
 
-    const SYSEX_EXTRA_BYTE = 0x00; // Some devices might send an extra 0x00 after 0xF0
+    const SYSEX_EXTRA_BYTE = 0x00;
 
-    // Check if there's an unexpected 00 byte after F0 (data[0] is SYSEX_START)
     const hasExtraByte = data[1] === SYSEX_EXTRA_BYTE;
     const offset = hasExtraByte ? 1 : 0;
 
-    // Check for Universal Non-Realtime Identity Reply
     // Expected structure: F0 7E <device_id> 06 02 ... F7
-    // data[0] = F0 (SYSEX_START)
-    // data[1+offset] = 7E (SYSEX_UNIVERSAL_NONREALTIME_ID)
-    // data[2+offset] = <device_id> (SYSEX_ALL_ID in request, specific ID in reply)
-    // data[3+offset] = 06 (SYSEX_GENERAL_INFO)
-    // data[4+offset] = 02 (SYSEX_IDENTITY_REPLY)
     // Firmware version starts at data[10+offset] for Dato DRUM
-    if (data.length > 13 + offset && // Ensure data is long enough for firmware version
+    if (data.length > 13 + offset &&
         data[1 + offset] === SYSEX_UNIVERSAL_NONREALTIME_ID &&
         data[3 + offset] === SYSEX_GENERAL_INFO &&
         data[4 + offset] === SYSEX_IDENTITY_REPLY) {
@@ -95,7 +79,6 @@ function parseSysExIdentityReply(data: Uint8Array): string | null {
     }
 }
 
-// Helper function to handle MIDI Note On/Off messages
 function handleMidiNoteMessage(data: Uint8Array): void {
     const [statusCode, noteNumber, velocity] = data;
     const status = statusCode & MIDI_STATUS_MASK;
@@ -108,7 +91,6 @@ function handleMidiNoteMessage(data: Uint8Array): void {
     }
 }
 
-// Create the writable store
 const { subscribe, set, update } = writable<MidiState>(initialState);
 
 // --- Start of Internal State Update Actions ---
@@ -117,7 +99,7 @@ function _setIsRequestingAccess(isRequesting: boolean) {
     update(state => ({
         ...state,
         isRequestingAccess: isRequesting,
-        error: isRequesting ? null : state.error, // Clear error only when starting request
+        error: isRequesting ? null : state.error,
     }));
 }
 
@@ -127,7 +109,7 @@ function _setMidiAccessGranted(midiAccess: MIDIAccess) {
         access: midiAccess,
         inputs: midiAccess.inputs,
         outputs: midiAccess.outputs,
-        error: null, // Successfully got access, clear previous errors
+        error: null,
     }));
 }
 
@@ -152,7 +134,7 @@ function _setDeviceConnected(output: MIDIOutput, input: MIDIInput | null) {
         selectedInput: input,
         isConnected: true,
         firmwareVersion: null, // Reset firmware version, expect new SysEx reply
-        error: null, // Successful connection, clear previous errors
+        error: null,
     }));
 }
 
@@ -163,7 +145,7 @@ function _setDeviceDisconnected() {
         selectedInput: null,
         isConnected: false,
         firmwareVersion: null,
-        error: null, // Disconnecting is a clean operation, clear errors
+        error: null,
     }));
 }
 
@@ -199,13 +181,9 @@ function _updateAvailableMidiDevices(midiAccess: MIDIAccess) {
 
 // --- End of Internal State Update Actions ---
 
-// Writable store for the currently active MIDI note (for momentary visual feedback on button)
 export const activeMidiNote = writable<number | null>(null);
-
-// Writable store for the currently selected sample's MIDI note (for persistent selection/centering)
 export const selectedSampleMidiNote = writable<number | null>(null);
 
-// Request MIDI access from the browser
 async function requestMidiAccess() {
     _setIsRequestingAccess(true);
     try {
@@ -214,17 +192,15 @@ async function requestMidiAccess() {
         }
 
         const midiAccess = await navigator.requestMIDIAccess({ sysex: true });
-        _setMidiAccessGranted(midiAccess); // Set initial access, devices, and clear error
+        _setMidiAccessGranted(midiAccess);
 
         midiAccess.onstatechange = (event) => {
             console.log('MIDI state change:', event.port.name, event.port.state);
-            _updateAvailableMidiDevices(midiAccess); // Re-update available devices
-            // If the selected device disconnects, trigger disconnect logic
+            _updateAvailableMidiDevices(midiAccess);
             if (event.port.state === 'disconnected' && get(midiStore).selectedOutput?.id === event.port.id) {
-                disconnectDevice(); // This will use _setDeviceDisconnected
+                disconnectDevice();
             }
         };
-        // _setMidiAccessGranted already called, no need for another update here.
         console.log('MIDI access granted:', midiAccess);
     } catch (err: unknown) {
         console.error('Failed to get MIDI access:', err);
@@ -238,7 +214,6 @@ async function requestMidiAccess() {
     }
 }
 
-// Connect to a specific MIDI output device
 function connectDevice(deviceId: string) {
     const currentMidiState = get(midiStore);
     const currentOutputs = currentMidiState.outputs;
@@ -249,10 +224,8 @@ function connectDevice(deviceId: string) {
         let input: MIDIInput | undefined;
 
         if (output) {
-            // Strategy 1: Try to find an input with the exact same name as the selected output.
             input = Array.from(currentInputs.values()).find(inputPort => inputPort.name === output.name);
 
-            // Strategy 2: If not found, try to find an input matching DRUM_DEVICE_FILTERS (case-insensitive).
             if (!input) {
                 input = Array.from(currentInputs.values()).find(inputPort => {
                     const inputNameLower = inputPort.name?.toLowerCase();
@@ -260,11 +233,10 @@ function connectDevice(deviceId: string) {
                 });
             }
 
-            // If an input is found, attach a listener
             if (input) {
                 input.onmidimessage = (event) => {
                     const data = event.data;
-                    console.log('Incoming MIDI message:', data); // General log for any incoming message
+                    console.log('Incoming MIDI message:', data);
 
                     if (data[0] === SYSEX_START) {
                         const fwVersion = parseSysExIdentityReply(data);
@@ -272,14 +244,12 @@ function connectDevice(deviceId: string) {
                             _setFirmwareVersion(fwVersion);
                         }
                     } else {
-                        // Handle non-SysEx messages (like Note On/Off)
                         handleMidiNoteMessage(data);
                     }
                 };
                 console.log('Listening to MIDI input:', input.name);
             } else {
                 console.warn('No matching MIDI input found for selected output device.');
-                // Still connect to output, but input will be null
             }
             _setDeviceConnected(output, input || null);
             console.log('Connected to MIDI device:', output.name);
@@ -293,15 +263,14 @@ function connectDevice(deviceId: string) {
     }
 }
 
-// Disconnect from the current device
 function disconnectDevice() {
     const currentMidiState = get(midiStore);
     if (currentMidiState.selectedInput) {
-        currentMidiState.selectedInput.onmidimessage = null; // Remove listener
+        currentMidiState.selectedInput.onmidimessage = null;
     }
     _setDeviceDisconnected();
-    activeMidiNote.set(null); // Clear active note on disconnect
-    selectedSampleMidiNote.set(null); // Clear selected note on disconnect
+    activeMidiNote.set(null);
+    selectedSampleMidiNote.set(null);
     console.log('Disconnected from MIDI device.');
 }
 
@@ -312,14 +281,13 @@ function requestIdentity() {
         return;
     }
 
-    // Using global constants defined at the top of the file
     const message = [
-        SYSEX_START, // Global constant
-        SYSEX_UNIVERSAL_NONREALTIME_ID, // Global constant
-        SYSEX_ALL_ID, // Global constant
-        SYSEX_GENERAL_INFO, // Global constant
-        SYSEX_IDENTITY_REQUEST, // Global constant
-        SYSEX_END // Global constant
+        SYSEX_START,
+        SYSEX_UNIVERSAL_NONREALTIME_ID,
+        SYSEX_ALL_ID,
+        SYSEX_GENERAL_INFO,
+        SYSEX_IDENTITY_REQUEST,
+        SYSEX_END
     ];
 
     selectedOutput.send(message);
@@ -333,20 +301,18 @@ function rebootToBootloader() {
         return;
     }
 
-    // Using global constants defined at the top of the file
     const message = [
-        SYSEX_START, // Global constant
-        SYSEX_DATO_ID, // Global constant
-        SYSEX_DRUM_ID, // Global constant
-        SYSEX_REBOOT_BOOTLOADER, // Global constant
-        SYSEX_END // Global constant
+        SYSEX_START,
+        SYSEX_DATO_ID,
+        SYSEX_DRUM_ID,
+        SYSEX_REBOOT_BOOTLOADER,
+        SYSEX_END
     ];
 
     selectedOutput.send(message);
     console.log('Sent SysEx Reboot to Bootloader command:', message);
 }
 
-// Function to play a MIDI note (for clicks/auditioning)
 function playNote(noteNumber: number) {
     const { selectedOutput } = get(midiStore);
 
@@ -356,7 +322,6 @@ function playNote(noteNumber: number) {
         activeMidiNote.set(noteNumber);
         selectedSampleMidiNote.set(noteNumber);
 
-        // Schedule MIDI Note Off after a delay
         setTimeout(() => {
             selectedOutput.send([MIDI_NOTE_OFF_CHANNEL1, noteNumber, NOTE_OFF_VELOCITY]);
             if (get(activeMidiNote) === noteNumber) {
@@ -368,7 +333,6 @@ function playNote(noteNumber: number) {
     }
 }
 
-// Export the store and actions
 export const midiStore = {
     subscribe,
     requestMidiAccess,
