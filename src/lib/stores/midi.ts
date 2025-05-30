@@ -309,10 +309,6 @@ function rebootToBootloader() {
     console.log('Sent SysEx Reboot to Bootloader command:', message);
 }
 
-// MIDI message constants
-const MIDI_NOTE_ON_CHANNEL1 = 0x90;
-const MIDI_NOTE_OFF_CHANNEL1 = 0x80;
-
 // Function to play a MIDI note (for clicks/auditioning)
 function playNote(noteNumber: number) {
     const { selectedOutput } = get(midiStore);
