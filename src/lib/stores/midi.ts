@@ -23,19 +23,18 @@ const initialState: MidiState = {
     isConnected: false,
     error: null,
     isRequestingAccess: false,
-    firmwareVersion: null, // ADDED: Initialize firmwareVersion
+    firmwareVersion: null,
 };
 
 // MIDI SysEx constants
 const SYSEX_START = 0xF0;
 const SYSEX_END = 0xF7;
 
-// ADDED: Constants from midi_tool.html for Universal SysEx Identity Request and Dato/DRUM specific commands
 const SYSEX_DATO_ID = 0x7D;
 const SYSEX_DRUM_ID = 0x65;
 const SYSEX_UNIVERSAL_NONREALTIME_ID = 0x7E;
 const SYSEX_ALL_ID = 0x7F;
-const SYSEX_REBOOT_BOOTLOADER = 0x0B; // ADDED: Constant for reboot to bootloader
+const SYSEX_REBOOT_BOOTLOADER = 0x0B;
 
 // SysEx command constants
 const SYSEX_GENERAL_INFO = 0x06;
@@ -86,7 +85,7 @@ async function requestMidiAccess() {
             throw new Error('Web MIDI API is not supported in this browser.');
         }
 
-        const midiAccess = await navigator.requestMIDIAccess({ sysex: true }); // Request SYSEX access for firmware updates
+        const midiAccess = await navigator.requestMIDIAccess({ sysex: true });
         midiAccess.onstatechange = (event) => {
             console.log('MIDI state change:', event.port.name, event.port.state);
             updateMidiDevices(midiAccess); // Re-update devices on state change
@@ -150,17 +149,16 @@ function connectDevice(deviceId: string) {
             if (input) {
                 input.onmidimessage = (event) => {
                     const data = event.data;
-                    console.log('Incoming MIDI message:', data); // Log incoming MIDI notes
+                    console.log('Incoming MIDI message:', data);
                     
                     const SYSEX_START = 0xF0;
                     
-                    // ADDED: SysEx message parsing for Universal Identity Reply
                     if (data[0] === SYSEX_START) {
                         console.log('Received SysEx message:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
                         
                         const SYSEX_EXTRA_BYTE = 0x00;
                     
-                        // Check if there's an unexpected 00 byte after F0 (some devices send F0 00 ...)
+                        // Check if there's an unexpected 00 byte after F0
                         const hasExtraByte = data[1] === SYSEX_EXTRA_BYTE;
                         const offset = hasExtraByte ? 1 : 0;
                         
@@ -168,18 +166,15 @@ function connectDevice(deviceId: string) {
                         const SYSEX_GENERAL_INFO = 0x06;
                         const SYSEX_IDENTITY_REPLY = 0x02;
                         
-                        // Universal Non-Realtime Identity Reply (F0 7E <channel> 06 02 ...)
+                        // Universal Non-Realtime Identity Reply
                         if (data[1 + offset] === SYSEX_UNIVERSAL_NONREALTIME_ID && 
                             data[3 + offset] === SYSEX_GENERAL_INFO && 
                             data[4 + offset] === SYSEX_IDENTITY_REPLY) {
                             
-                            // Manufacturer ID: data[5 + offset]
-                            // Device Family: (data[7 + offset] << 7) | data[6 + offset]
-                            // Device Family Member: (data[9 + offset] << 7) | data[8 + offset]
                             const major = data[10 + offset];
                             const minor = data[11 + offset];
                             const patch = data[12 + offset];
-                            const commits = data[13 + offset]; // Extract commits byte
+                            const commits = data[13 + offset];
 
                             const fwVersion = `${major}.${minor}.${patch} (${commits} commits)`;
                             console.log(`Identified device firmware: ${fwVersion}`);
@@ -192,26 +187,23 @@ function connectDevice(deviceId: string) {
                             console.log('Unknown SysEx message format - couldn\'t parse identity reply.');
                         }
                     }
-                    // END ADDED SysEx parsing
 
                     // MIDI message constants
                     const MIDI_STATUS_MASK = 0xF0;
                     const MIDI_NOTE_ON = 0x90;
                     const MIDI_NOTE_OFF = 0x80;
                     
-                    // Existing Note On/Off handling
                     const [statusCode, noteNumber, velocity] = event.data;
                     
                     // Check for Note On (0x9n) on any channel
                     if ((statusCode & MIDI_STATUS_MASK) === MIDI_NOTE_ON && velocity > 0) {
-                        activeMidiNote.set(noteNumber); // Momentary visual feedback
-                        selectedSampleMidiNote.set(noteNumber); // Persistent selection
+                        activeMidiNote.set(noteNumber);
+                        selectedSampleMidiNote.set(noteNumber);
                     } 
                     // Check for Note Off (0x8n) on any channel, or Note On with velocity 0
                     else if ((statusCode & MIDI_STATUS_MASK) === MIDI_NOTE_OFF || 
                             ((statusCode & MIDI_STATUS_MASK) === MIDI_NOTE_ON && velocity === 0)) {
-                        activeMidiNote.set(null); // Clear momentary feedback
-                        // selectedSampleMidiNote remains set until a new note is selected
+                        activeMidiNote.set(null);
                     }
                 };
                 console.log('Listening to MIDI input:', input.name);
@@ -225,7 +217,7 @@ function connectDevice(deviceId: string) {
                 selectedInput: input || null, // Set the selected input
                 isConnected: true,
                 error: null,
-                firmwareVersion: null, // Reset firmware version on new connection attempt
+                firmwareVersion: null,
             }));
             console.log('Connected to MIDI device:', output.name);
         } else {
@@ -235,7 +227,7 @@ function connectDevice(deviceId: string) {
                 selectedInput: null,
                 isConnected: false,
                 error: 'Selected device not found.',
-                firmwareVersion: null, // Clear firmware version on connection failure
+                firmwareVersion: null,
             }));
             console.error('Device not found:', deviceId);
         }
@@ -246,7 +238,7 @@ function connectDevice(deviceId: string) {
             selectedInput: null,
             isConnected: false,
             error: 'MIDI outputs/inputs not available. Please request MIDI access first.',
-            firmwareVersion: null, // Clear firmware version if MIDI access not available
+            firmwareVersion: null,
         }));
         console.error('MIDI outputs/inputs not available.');
     }
@@ -263,14 +255,13 @@ function disconnectDevice() {
         selectedOutput: null,
         selectedInput: null,
         isConnected: false,
-        firmwareVersion: null, // ADDED: Clear firmware version on disconnect
+        firmwareVersion: null,
     }));
     activeMidiNote.set(null); // Clear active note on disconnect
     selectedSampleMidiNote.set(null); // Clear selected note on disconnect
     console.log('Disconnected from MIDI device.');
 }
 
-// ADDED: Function to send Universal SysEx Identity Request
 function requestIdentity() {
     const { selectedOutput } = get(midiStore);
     if (!selectedOutput) {
@@ -285,10 +276,10 @@ function requestIdentity() {
     
     const message = [
         SYSEX_START,
-        SYSEX_UNIVERSAL_NONREALTIME_ID, // 0x7E
-        SYSEX_ALL_ID,                   // 0x7F (all devices)
-        SYSEX_GENERAL_INFO,             // General Information
-        SYSEX_IDENTITY_REQUEST,         // Identity Request
+        SYSEX_UNIVERSAL_NONREALTIME_ID,
+        SYSEX_ALL_ID,
+        SYSEX_GENERAL_INFO,
+        SYSEX_IDENTITY_REQUEST,
         SYSEX_END
     ];
     
@@ -296,7 +287,6 @@ function requestIdentity() {
     console.log('Sent SysEx Identity Request:', message);
 }
 
-// ADDED: Function to send Reboot to Bootloader SysEx command
 function rebootToBootloader() {
     const { selectedOutput } = get(midiStore);
     if (!selectedOutput) {
@@ -328,26 +318,17 @@ function playNote(noteNumber: number) {
     const { selectedOutput } = get(midiStore);
 
     if (selectedOutput) {
-        // MIDI Note On message: [status byte, note number, velocity]
-        // Status byte 0x90 = Note On on channel 1
         selectedOutput.send([MIDI_NOTE_ON_CHANNEL1, noteNumber, NOTE_ON_VELOCITY]);
 
-        // Set active note for momentary visual feedback
         activeMidiNote.set(noteNumber);
-        // Set selected note for persistent selection/centering
         selectedSampleMidiNote.set(noteNumber);
 
         // Schedule MIDI Note Off after a delay
         setTimeout(() => {
-            // MIDI Note Off message: [status byte, note number, velocity]
-            // Status byte 0x80 = Note Off on channel 1
             selectedOutput.send([MIDI_NOTE_OFF_CHANNEL1, noteNumber, NOTE_OFF_VELOCITY]);
-            // Clear active note after duration, but only if it's still this note
-            // This prevents clearing if another note was pressed quickly after
             if (get(activeMidiNote) === noteNumber) {
                 activeMidiNote.set(null);
             }
-            // selectedSampleMidiNote remains set here
         }, NOTE_DURATION_MS);
     } else {
         console.warn('No MIDI output selected. Cannot play note.');
@@ -360,7 +341,7 @@ export const midiStore = {
     requestMidiAccess,
     connectDevice,
     disconnectDevice,
-    playNote, // Export the new playNote function
-    requestIdentity, // ADDED: Export the new requestIdentity function
-    rebootToBootloader, // ADDED: Export the new rebootToBootloader function
+    playNote,
+    requestIdentity,
+    rebootToBootloader,
 };
