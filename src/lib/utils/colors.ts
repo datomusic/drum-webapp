@@ -4,7 +4,7 @@
  * factors for each RGB channel due to the silicone material.
  */
 const BASE_COLOR_RGB = [120, 120, 120]; // Grey when off (R, G, B)
-const ATTENUATION_FACTORS = [0.4, 0.5, 0.3]; // RGB attenuation factors (customize per your measurements)
+const ATTENUATION_FACTORS = [1, 1, 1]; // RGB attenuation factors (customize per your measurements)
 
 /**
  * Converts a hex color string (e.g., "#RRGGBB") to an RGB array.
