@@ -279,37 +279,16 @@ function connectDevice(deviceId: string) {
                 console.log('Listening to MIDI input:', input.name);
             } else {
                 console.warn('No matching MIDI input found for selected output device.');
+                // Still connect to output, but input will be null
             }
-
-            update(state => ({
-                ...state,
-                selectedOutput: output,
-                selectedInput: input || null, // Set the selected input
-                isConnected: true,
-                error: null,
-                firmwareVersion: null,
-            }));
+            _setDeviceConnected(output, input || null);
             console.log('Connected to MIDI device:', output.name);
         } else {
-            update(state => ({
-                ...state,
-                selectedOutput: null,
-                selectedInput: null,
-                isConnected: false,
-                error: 'Selected device not found.',
-                firmwareVersion: null,
-            }));
+            _setDeviceConnectionError('Selected device not found.');
             console.error('Device not found:', deviceId);
         }
     } else {
-        update(state => ({
-            ...state,
-            selectedOutput: null,
-            selectedInput: null,
-            isConnected: false,
-            error: 'MIDI outputs/inputs not available. Please request MIDI access first.',
-            firmwareVersion: null,
-        }));
+        _setDeviceConnectionError('MIDI outputs/inputs not available. Please request MIDI access first.');
         console.error('MIDI outputs/inputs not available.');
     }
 }
