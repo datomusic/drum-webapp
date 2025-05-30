@@ -29,7 +29,6 @@
     cursor-pointer
     transition-all duration-150 ease-in-out
     focus:outline-none
-    {isActive ? 'ring-4 ring-offset-2 ring-white shadow-lg' : ''}
   "
   style="background-color: {color};"
   on:click={handleClick}
