@@ -24,5 +24,7 @@
   "no_midi_devices_found": "Plug in your Dato DRUM to start.",
   "firmware_version_label": "Firmware: {version}",
   "reboot_bootloader_button": "Reboot to Bootloader",
-  "reboot_bootloader_confirm": "This will reboot the device to bootloader mode. Continue?"
+  "reboot_bootloader_confirm": "This will reboot the device to bootloader mode. Continue?",
+  "firmware_update_available": "A new firmware version ({latestVersion}) is available!",
+  "download_firmware_button": "Download Firmware (.UF2)"
 }

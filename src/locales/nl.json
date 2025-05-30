@@ -24,5 +24,7 @@
   "no_midi_devices_found": "Sluit je Dato DRUM aan om te beginnen.",
   "firmware_version_label": "Firmware: {version}",
   "reboot_bootloader_button": "Opnieuw opstarten naar bootloader",
-  "reboot_bootloader_confirm": "Dit zal het apparaat opnieuw opstarten naar de bootloader-modus. Doorgaan?"
+  "reboot_bootloader_confirm": "Dit zal het apparaat opnieuw opstarten naar de bootloader-modus. Doorgaan?",
+  "firmware_update_available": "Een nieuwe firmware-versie ({latestVersion}) is beschikbaar!",
+  "download_firmware_button": "Firmware downloaden (.UF2)"
 }
