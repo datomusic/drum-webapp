@@ -71,9 +71,13 @@ function parseSysExIdentityReply(data: Uint8Array): string | null {
         const patch = data[12 + offset];
         const commits = data[13 + offset]; // Dato-specific: number of commits
 
-        const fwVersion = `${major}.${minor}.${patch}-dev.${commits}`;
+        // Construct firmware version string, omitting '-dev.0' if commits is 0
+        const fwVersion = commits === 0
+            ? `${major}.${minor}.${patch}`
+            : `${major}.${minor}.${patch}-dev.${commits}`;
+            
         console.log(`Identified device firmware: ${fwVersion}`);
-        console.log(`Latest available firmware: ${LATEST_FIRMWARE_VERSION}`); // NEW: Log latest firmware version
+        console.log(`Latest available firmware: ${LATEST_FIRMWARE_VERSION}`);
         return fwVersion;
     } else {
         console.log('SysEx message is not a recognized Identity Reply or is malformed.');
