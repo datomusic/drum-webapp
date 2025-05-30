@@ -3,6 +3,8 @@
     import { midiStore } from '$lib/stores/midi';
     import { onMount } from 'svelte';
     import { derived } from 'svelte/store';
+    import { LATEST_FIRMWARE_VERSION, FIRMWARE_DOWNLOAD_URL } from '$lib/config/firmware'; // ADDED: Import LATEST_FIRMWARE_VERSION and FIRMWARE_DOWNLOAD_URL
+    import { isNewerVersion } from '$lib/utils/versioning'; // ADDED: Import isNewerVersion
 
     let selectedDeviceId: string | undefined;
     let userDisconnected: boolean = false;
@@ -21,6 +23,16 @@
             const outputNameLower = output.name?.toLowerCase();
             return outputNameLower && lowerCaseFilters.some(filter => outputNameLower.includes(filter));
         });
+    });
+
+    // ADDED: Derived store to check if a firmware update is available
+    const firmwareUpdateAvailable = derived(midiStore, ($midiStore) => {
+        if ($midiStore.isConnected) {
+            // If firmwareVersion is null, it means we haven't received it yet or it's not supported.
+            // In this case, we assume an update might be needed to prompt the user.
+            return isNewerVersion($midiStore.firmwareVersion, LATEST_FIRMWARE_VERSION);
+        }
+        return false;
     });
 
     // Automatically request MIDI access when the component mounts
@@ -62,7 +74,7 @@
         }
     }
 
-    // ADDED: Reactive statement to request identity when connected and firmware version is not yet known
+    // Reactive statement to request identity when connected and firmware version is not yet known
     $: {
         if ($midiStore.isConnected && $midiStore.selectedOutput && !$midiStore.firmwareVersion) {
             midiStore.requestIdentity();
@@ -109,6 +121,18 @@
                 {#if $midiStore.firmwareVersion}
                     ({$_('firmware_version_label', { values: { version: $midiStore.firmwareVersion } })}){/if}
             </p>
+            {#if $firmwareUpdateAvailable} <!-- ADDED: Firmware update notification block -->
+                <p class="text-yellow-700 mt-2">
+                    {$_('firmware_update_available', { values: { latestVersion: LATEST_FIRMWARE_VERSION } })}
+                </p>
+                <a
+                    href={FIRMWARE_DOWNLOAD_URL}
+                    download
+                    class="inline-block mt-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                >
+                    {$_('download_firmware_button')}
+                </a>
+            {/if}
             <div class="mt-2 flex gap-2">
                 <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" on:click={handleDisconnect}>
                     {$_('device_disconnect_button')}
