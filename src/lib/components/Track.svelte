@@ -11,6 +11,8 @@
   // Initialize selectedSampleIndex to the middle, or the first if samples are few
   let selectedSampleIndex = Math.floor(samples.length / 2);
   $: selectedVoiceColor = samples[selectedSampleIndex]?.color;
+  // ADDED: Get the MIDI note number of the currently selected voice
+  $: selectedVoiceMidiNote = samples[selectedSampleIndex]?.midiNoteNumber;
 
   const voiceIcons = [
     'pad_hat.svg',
@@ -83,7 +85,11 @@
 
   <div class="voice-overlay-container z-10 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
     {#if samples[selectedSampleIndex]}
-      <Voice color={selectedVoiceColor} imageSrc={currentTrackIcon} />
+      <Voice
+        color={selectedVoiceColor}
+        imageSrc={currentTrackIcon}
+        midiNoteNumber={selectedVoiceMidiNote}
+      />
     {/if}
   </div>
 </div>

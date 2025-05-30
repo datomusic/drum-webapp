@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { midiStore } from '$lib/stores/midi'; // ADDED: Import midiStore
+
   // This component represents the "Voice" settings for a sample slot.
   // It displays an icon indicating its purpose.
 
@@ -11,10 +13,21 @@
   /**
    * The source path for the icon image to display within the voice component.
    */
-  export let imageSrc: string; // Re-adding this prop
+  export let imageSrc: string;
+
+  /**
+   * The MIDI note number associated with this voice.
+   * ADDED: This prop is used to play the note when the voice is clicked.
+   */
+  export let midiNoteNumber: number;
 
   // Reactive statement to determine the background style
   $: backgroundStyle = color ? `background-color: ${color};` : 'background-color: #e5e7eb;'; // Tailwind's bg-gray-200
+
+  // ADDED: Function to handle click event and play the MIDI note
+  function handleClick() {
+    midiStore.playNote(midiNoteNumber);
+  }
 </script>
 
 <div class="
@@ -28,6 +41,7 @@
     cursor-pointer
 "
 style="{backgroundStyle}"
+on:click={handleClick}
 >
   <img src={imageSrc} alt="Voice" class="w-16 h-16" />
 </div>
