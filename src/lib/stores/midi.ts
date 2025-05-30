@@ -70,7 +70,7 @@ function parseSysExIdentityReply(data: Uint8Array): string | null {
         const patch = data[12 + offset];
         const commits = data[13 + offset]; // Dato-specific: number of commits
 
-        const fwVersion = `${major}.${minor}.${patch} (${commits} commits)`;
+        const fwVersion = `${major}.${minor}.${patch}-dev.${commits}`;
         console.log(`Identified device firmware: ${fwVersion}`);
         return fwVersion;
     } else {
