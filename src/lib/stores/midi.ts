@@ -312,20 +312,16 @@ function requestIdentity() {
         return;
     }
 
-    const SYSEX_START = 0xF0;
-    const SYSEX_END = 0xF7;
-    const SYSEX_GENERAL_INFO = 0x06;
-    const SYSEX_IDENTITY_REQUEST = 0x01;
-    
+    // Using global constants defined at the top of the file
     const message = [
-        SYSEX_START,
-        SYSEX_UNIVERSAL_NONREALTIME_ID,
-        SYSEX_ALL_ID,
-        SYSEX_GENERAL_INFO,
-        SYSEX_IDENTITY_REQUEST,
-        SYSEX_END
+        SYSEX_START, // Global constant
+        SYSEX_UNIVERSAL_NONREALTIME_ID, // Global constant
+        SYSEX_ALL_ID, // Global constant
+        SYSEX_GENERAL_INFO, // Global constant
+        SYSEX_IDENTITY_REQUEST, // Global constant
+        SYSEX_END // Global constant
     ];
-    
+
     selectedOutput.send(message);
     console.log('Sent SysEx Identity Request:', message);
 }
@@ -337,15 +333,13 @@ function rebootToBootloader() {
         return;
     }
 
-    const SYSEX_START = 0xF0;
-    const SYSEX_END = 0xF7;
-    
+    // Using global constants defined at the top of the file
     const message = [
-        SYSEX_START,
-        SYSEX_DATO_ID,
-        SYSEX_DRUM_ID,
-        SYSEX_REBOOT_BOOTLOADER,
-        SYSEX_END
+        SYSEX_START, // Global constant
+        SYSEX_DATO_ID, // Global constant
+        SYSEX_DRUM_ID, // Global constant
+        SYSEX_REBOOT_BOOTLOADER, // Global constant
+        SYSEX_END // Global constant
     ];
 
     selectedOutput.send(message);
