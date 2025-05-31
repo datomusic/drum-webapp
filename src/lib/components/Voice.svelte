@@ -81,7 +81,7 @@
   class:border-dashed={isDragOver}
   class:border-blue-500={isDragOver}
   class:bg-blue-100={isDragOver}
-  class:z-[1000]={$isDraggingOverWindow} /* Appear above the overlay */
+  class:z-[1000]={$isDraggingOverWindow}
   style="{backgroundStyle} {filterStyle}"
   on:click={handleClick}
   on:dragover={handleDragOver}
