@@ -42,8 +42,7 @@
 </footer>
 
 <style>
-	#language-select,
-	#language-select:active:first-child {
+	#language-select {
 		text-transform: uppercase;
 	}
 	/* Make sure the elements in the dropdown are not uppercased */
