@@ -75,8 +75,8 @@
     border-2 border-transparent
   "
   class:border-dashed={isDragOver}
-  class:border-blue-500={isDragOver} /* Or any color that fits your theme */
-  class:bg-blue-100={isDragOver} /* Optional: slight background change */
+  class:border-blue-500={isDragOver}
+  class:bg-blue-100={isDragOver}
   style="{backgroundStyle} {filterStyle}"
   on:click={handleClick}
   on:dragover={handleDragOver}
