@@ -1,6 +1,7 @@
 <script lang="ts">
   import { midiStore } from '$lib/stores/midi';
   import { colorFilters } from '$lib/stores/colorFilters'; // Import colorFilters store
+  import { isDraggingOverWindow } from '$lib/stores/dragDropStore'; // Import the global drag state
 
   // This component represents the "Voice" settings for a sample slot.
   // It displays an icon indicating its purpose and acts as a drop target for audio files.
@@ -75,10 +76,12 @@
     transition-all duration-150 ease-in-out
     cursor-pointer
     border-2 border-transparent
+    relative /* Ensure z-index is effective */
   "
   class:border-dashed={isDragOver}
   class:border-blue-500={isDragOver}
   class:bg-blue-100={isDragOver}
+  class:z-[1000]={$isDraggingOverWindow} /* Appear above the overlay */
   style="{backgroundStyle} {filterStyle}"
   on:click={handleClick}
   on:dragover={handleDragOver}
