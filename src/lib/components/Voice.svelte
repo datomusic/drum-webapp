@@ -25,7 +25,9 @@
   export let midiNoteNumber: number;
 
   // Reactive statement to determine the background style
-  $: backgroundStyle = color ? `background-color: ${color};` : 'background-color: #e5e7eb;'; // Tailwind's bg-gray-200
+  $: backgroundStyle = isDragOver
+    ? '' // When dragging over, let Tailwind class 'bg-blue-100' handle background
+    : (color ? `background-color: ${color};` : 'background-color: #e5e7eb;'); // Tailwind's bg-gray-200
 
   // Reactive variable to generate the CSS filter style based on the colorFilters store
   $: filterStyle = `
