@@ -87,8 +87,5 @@
 </button>
 
 <style>
-  .voice-component.border-dashed {
-    /* Tailwind's border-dashed might be enough, but you can add more specific styles if needed */
-    /* Example: background-color: rgba(0, 0, 255, 0.05); */
-  }
+
 </style>
