@@ -15,7 +15,7 @@ interface ColorFilterState {
  * These filters are applied via CSS to visually transform colors.
  */
 export const colorFilters = writable<ColorFilterState>({
-    saturation: 1, // Default: 100% saturation
+    saturation: 0.9, // Default: 100% saturation
     brightness: 1, // Default: 100% brightness
     contrast: 1,   // Default: 100% contrast
 });
