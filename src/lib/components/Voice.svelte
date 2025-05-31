@@ -3,7 +3,9 @@
   import { colorFilters } from '$lib/stores/colorFilters'; // Import colorFilters store
 
   // This component represents the "Voice" settings for a sample slot.
-  // It displays an icon indicating its purpose.
+  // It displays an icon indicating its purpose and acts as a drop target for audio files.
+
+  let isDragOver = false; // Reactive variable to track drag-over state
 
   /**
    * Optional color to apply to the voice component's background.
@@ -37,9 +39,31 @@
   function handleClick() {
     midiStore.playNote(midiNoteNumber);
   }
+
+  // Drag and drop event handlers
+  function handleDragOver(event: DragEvent) {
+    event.preventDefault(); // Necessary to allow dropping
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy'; // Show a copy icon
+    }
+    isDragOver = true;
+  }
+
+  function handleDragLeave(event: DragEvent) {
+    event.preventDefault();
+    isDragOver = false;
+  }
+
+  function handleDrop(event: DragEvent) {
+    event.preventDefault();
+    isDragOver = false;
+    // File processing logic will be added here in a future step
+    console.log('Files dropped:', event.dataTransfer?.files);
+  }
 </script>
 
-<button class="
+<button
+  class="
     voice-component
     w-20 h-20
     rounded-lg
@@ -48,13 +72,23 @@
     hover:shadow-md
     transition-all duration-150 ease-in-out
     cursor-pointer
-"
-style="{backgroundStyle} {filterStyle}"
-on:click={handleClick}
+    border-2 border-transparent
+  "
+  class:border-dashed={isDragOver}
+  class:border-blue-500={isDragOver} /* Or any color that fits your theme */
+  class:bg-blue-100={isDragOver} /* Optional: slight background change */
+  style="{backgroundStyle} {filterStyle}"
+  on:click={handleClick}
+  on:dragover={handleDragOver}
+  on:dragleave={handleDragLeave}
+  on:drop={handleDrop}
 >
   <img src={imageSrc} alt="Voice" class="w-16 h-16" />
 </button>
 
 <style>
-  /* No specific styles needed here, Tailwind handles most of it. */
+  .voice-component.border-dashed {
+    /* Tailwind's border-dashed might be enough, but you can add more specific styles if needed */
+    /* Example: background-color: rgba(0, 0, 255, 0.05); */
+  }
 </style>
