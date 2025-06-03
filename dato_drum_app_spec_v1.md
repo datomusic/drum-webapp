@@ -9,7 +9,7 @@ This document outlines the requirements for a companion web application for the 
 - **Internationalization:** Initial languages: English, German, Dutch. Text messages in the locales use simple language also understandable by children (but
 > not too wordy or explanatory or childish, keep it short and sweet)
 ## 3. Possible Stack
-- **Framework:** Svelte / SvelteKit
+- **Framework:** Svelte 5 / SvelteKit
 - **Styling:** Tailwind CSS
 - **Internationalization:** `svelte-i18n`
 - **Mobile Packaging (Optional):** Ionic Capacitor with `capacitor-musetrainer-midi` for iOS.
