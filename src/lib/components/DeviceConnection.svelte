@@ -102,8 +102,8 @@
     }
 </script>
 
-<section class="p-4  bg-white">
-    <div class="bg-gray-100 p-3 rounded">
+<section class="p-4 bg-white">
+    <div class="bg-gray-100 p-3 rounded rounded max-w-screen-lg mx-auto items-center">
         {#if $midiStore.error}
             <p class="text-red-600 mb-2">{$_('midi_error_message', { values: { error: $midiStore.error } })}</p>
         {/if}
