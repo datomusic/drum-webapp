@@ -1,28 +1,37 @@
 <script lang="ts">
+  import { createBubbler } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   import { midiStore, activeMidiNote } from '$lib/stores/midi'; // Import activeMidiNote
   import { colorFilters } from '$lib/stores/colorFilters'; // Import colorFilters store
   import { get } from 'svelte/store';
 
-  /**
+  
+
+  
+  interface Props {
+    /**
    * The color of the button, e.g., '#FF0000' or 'red'.
    */
-  export let color: string;
-
-  /**
+    color: string;
+    /**
    * The MIDI note number to display on the button.
    */
-  export let midiNoteNumber: number;
+    midiNoteNumber: number;
+  }
+
+  let { color, midiNoteNumber }: Props = $props();
 
   // Reactive variable to determine if this button is currently active
-  $: isActive = $activeMidiNote === midiNoteNumber;
+  let isActive = $derived($activeMidiNote === midiNoteNumber);
 
   // Reactive variable to generate the CSS filter style based on the colorFilters store
-  $: filterStyle = `
+  let filterStyle = $derived(`
     filter:
       saturate(${$colorFilters.saturation})
       brightness(${$colorFilters.brightness})
       contrast(${$colorFilters.contrast});
-  `;
+  `);
 
   function handleClick() {
     // Call the centralized playNote function from the midiStore
@@ -40,8 +49,8 @@
     focus:outline-none
   "
   style="background-color: {color}; {filterStyle}"
-  on:click={handleClick}
-  on:keydown
+  onclick={handleClick}
+  onkeydown={bubble('keydown')}
 >
   {midiNoteNumber}
 </button>

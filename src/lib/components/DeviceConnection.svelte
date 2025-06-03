@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { run } from 'svelte/legacy';
+
     import { _ } from 'svelte-i18n';
     import { midiStore } from '$lib/stores/midi';
     import { onMount } from 'svelte';
@@ -6,8 +8,8 @@
     import { LATEST_FIRMWARE_VERSION, FIRMWARE_DOWNLOAD_URL } from '$lib/config/firmware'; // ADDED: Import LATEST_FIRMWARE_VERSION and FIRMWARE_DOWNLOAD_URL
     import { isNewerVersion } from '$lib/utils/versioning'; // ADDED: Import isNewerVersion
 
-    let selectedDeviceId: string | undefined;
-    let userDisconnected: boolean = false;
+    let selectedDeviceId: string | undefined = $state();
+    let userDisconnected: boolean = $state(false);
 
     // Define the filter array for Dato DRUM devices
     // A device will match if its name contains any of these strings (case-insensitive)
@@ -40,46 +42,9 @@
         midiStore.requestMidiAccess();
     });
 
-    // Reactive statement to update selectedDeviceId when outputs change
-    // This helps if the device is connected/disconnected after initial load
-    $: {
-        if ($midiStore.outputs && !$midiStore.selectedOutput && selectedDeviceId) {
-            // If a device was previously selected but is no longer connected, clear selection
-            if (!$midiStore.outputs.has(selectedDeviceId)) {
-                selectedDeviceId = undefined;
-            }
-        }
-    }
 
-    // Reactive statement for auto-selection
-    $: {
-        // Auto-select only if:
-        // 1. Not connected
-        // 2. There are filtered outputs
-        // 3. No device is currently selected (selectedDeviceId is undefined)
-        // 4. AND the user has NOT just initiated a disconnect
-        if (!$midiStore.isConnected && $filteredOutputs.length > 0 && selectedDeviceId === undefined && !userDisconnected) {
-            selectedDeviceId = $filteredOutputs[0].id;
-        }
-    }
 
-    // Reactive statement for auto-connection
-    $: {
-        // Auto-connect only if:
-        // 1. A device is selected
-        // 2. We are not currently connected
-        // 3. AND the user has NOT just initiated a disconnect
-        if (selectedDeviceId && !$midiStore.isConnected && !userDisconnected) {
-            handleConnect();
-        }
-    }
 
-    // Reactive statement to request identity when connected and firmware version is not yet known
-    $: {
-        if ($midiStore.isConnected && $midiStore.selectedOutput && !$midiStore.firmwareVersion) {
-            midiStore.requestIdentity();
-        }
-    }
 
     function handleConnect() {
         if (selectedDeviceId) {
@@ -100,6 +65,43 @@
             await midiStore.rebootToBootloader();
         }
     }
+    // Reactive statement to update selectedDeviceId when outputs change
+    // This helps if the device is connected/disconnected after initial load
+    run(() => {
+        if ($midiStore.outputs && !$midiStore.selectedOutput && selectedDeviceId) {
+            // If a device was previously selected but is no longer connected, clear selection
+            if (!$midiStore.outputs.has(selectedDeviceId)) {
+                selectedDeviceId = undefined;
+            }
+        }
+    });
+    // Reactive statement for auto-selection
+    run(() => {
+        // Auto-select only if:
+        // 1. Not connected
+        // 2. There are filtered outputs
+        // 3. No device is currently selected (selectedDeviceId is undefined)
+        // 4. AND the user has NOT just initiated a disconnect
+        if (!$midiStore.isConnected && $filteredOutputs.length > 0 && selectedDeviceId === undefined && !userDisconnected) {
+            selectedDeviceId = $filteredOutputs[0].id;
+        }
+    });
+    // Reactive statement for auto-connection
+    run(() => {
+        // Auto-connect only if:
+        // 1. A device is selected
+        // 2. We are not currently connected
+        // 3. AND the user has NOT just initiated a disconnect
+        if (selectedDeviceId && !$midiStore.isConnected && !userDisconnected) {
+            handleConnect();
+        }
+    });
+    // Reactive statement to request identity when connected and firmware version is not yet known
+    run(() => {
+        if ($midiStore.isConnected && $midiStore.selectedOutput && !$midiStore.firmwareVersion) {
+            midiStore.requestIdentity();
+        }
+    });
 </script>
 
 <section class="p-4 bg-white">
@@ -112,7 +114,7 @@
             <p class="text-blue-600">{$_('midi_requesting_access')}</p>
         {:else if $midiStore.access === null}
             <p class="text-orange-600">{$_('midi_not_supported')}</p>
-            <button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" on:click={midiStore.requestMidiAccess}>
+            <button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onclick={midiStore.requestMidiAccess}>
                 {$_('midi_request_access_button')}
             </button>
         {:else if $midiStore.isConnected}
@@ -134,10 +136,10 @@
                 </a>
             {/if}
             <div class="mt-2 flex gap-2">
-                <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" on:click={handleDisconnect}>
+                <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" onclick={handleDisconnect}>
                     {$_('device_disconnect_button')}
                 </button>
-                <button class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600" on:click={handleRebootToBootloader}>
+                <button class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600" onclick={handleRebootToBootloader}>
                     {$_('reboot_bootloader_button')}
                 </button>
             </div>
@@ -160,7 +162,7 @@
                     </select>
                     <button
                     class="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    on:click={handleConnect}
+                    onclick={handleConnect}
                     disabled={!selectedDeviceId}
                 >
                     {$_('device_connection_button')}

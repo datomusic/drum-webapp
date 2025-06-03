@@ -1,18 +1,24 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { tweened } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
   import SampleButton from './SampleButton.svelte';
   import Voice from './Voice.svelte';
   import { selectedSampleMidiNote } from '$lib/stores/midi'; // Import selectedSampleMidiNote
 
-  export let samples: Array<{ color: string; midiNoteNumber: number }>;
-  export let trackIndex: number;
+  interface Props {
+    samples: Array<{ color: string; midiNoteNumber: number }>;
+    trackIndex: number;
+  }
+
+  let { samples, trackIndex }: Props = $props();
 
   // Initialize selectedSampleIndex to the middle, or the first if samples are few
-  let selectedSampleIndex = Math.floor(samples.length / 2);
-  $: selectedVoiceColor = samples[selectedSampleIndex]?.color;
+  let selectedSampleIndex = $state(Math.floor(samples.length / 2));
+  let selectedVoiceColor = $derived(samples[selectedSampleIndex]?.color);
   // ADDED: Get the MIDI note number of the currently selected voice
-  $: selectedVoiceMidiNote = samples[selectedSampleIndex]?.midiNoteNumber;
+  let selectedVoiceMidiNote = $derived(samples[selectedSampleIndex]?.midiNoteNumber);
 
   const voiceIcons = [
     'pad_hat.svg',
@@ -20,7 +26,7 @@
     'pad_snare.svg',
     'pad_kick.svg',
   ];
-  $: currentTrackIcon = voiceIcons[trackIndex % voiceIcons.length];
+  let currentTrackIcon = $derived(voiceIcons[trackIndex % voiceIcons.length]);
 
   // Configuration for layout (based on sm: Tailwind classes)
   // sm:w-20 for SampleButton/Voice -> 5rem = 80px (assuming 1rem = 16px)
@@ -29,7 +35,7 @@
   const gapPx = 16;
   const itemSlotWidthPx = buttonWidthPx + gapPx; // Effective width of a button slot including its gap
 
-  let containerWidthPx = 0; // Bound to the track-container's clientWidth
+  let containerWidthPx = $state(0); // Bound to the track-container's clientWidth
 
   const stripTranslateX = tweened(0, {
     duration: 350,
@@ -37,7 +43,7 @@
   });
 
   // Reactive statement to update selectedSampleIndex based on selectedSampleMidiNote
-  $: {
+  run(() => {
     if ($selectedSampleMidiNote !== null) {
       const incomingNoteIndex = samples.findIndex(
         sample => sample.midiNoteNumber === $selectedSampleMidiNote
@@ -46,10 +52,10 @@
         selectedSampleIndex = incomingNoteIndex;
       }
     }
-  }
+  });
 
   // Reactive effect to update the translation when selectedSampleIndex or containerWidthPx changes
-  $: {
+  run(() => {
     if (containerWidthPx > 0) {
       // Calculate the X position that would place the center of the selected button
       // at the center of the container.
@@ -59,7 +65,7 @@
         containerWidthPx / 2 - selectedSampleIndex * itemSlotWidthPx - buttonWidthPx / 2;
       stripTranslateX.set(targetX);
     }
-  }
+  });
 </script>
 
 <div
