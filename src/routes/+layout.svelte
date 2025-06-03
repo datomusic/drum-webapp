@@ -51,10 +51,11 @@
 
 <div
 	class="app-container relative"
-	on:dragenter={handleWindowDragEnter}
-	on:dragover={handleWindowDragOver}
-	on:dragleave={handleWindowDragLeave}
-	on:drop={handleWindowDrop}
+	ondragenter={handleWindowDragEnter}
+	ondragover={handleWindowDragOver}
+	ondragleave={handleWindowDragLeave}
+	ondrop={handleWindowDrop}
+	role="none"
 >
 	<header class="bg-white text-gray-800 p-4 text-center">
 		<nav class="flex justify-between items-center max-w-screen-lg mx-auto">
@@ -88,7 +89,7 @@
 
 	{#if $isDraggingOverWindow}
 		<div
-			class="fixed inset-0 bg-black bg-opacity-50 z-[999]"
+			class="fixed inset-0 bg-black opacity-50 z-[999]"
 			aria-hidden="true"
 		>
 			<!-- This overlay covers the page -->
