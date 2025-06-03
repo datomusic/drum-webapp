@@ -76,7 +76,7 @@
     transition-all duration-150 ease-in-out
     cursor-pointer
     border-2 border-transparent
-    relative /* Ensure z-index is effective */
+    relative
   "
   class:border-dashed={isDragOver}
   class:border-blue-500={isDragOver}
