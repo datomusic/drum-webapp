@@ -28,8 +28,10 @@ const initialState: MidiState = {
 const SYSEX_START = 0xF0;
 const SYSEX_END = 0xF7;
 
-const SYSEX_DATO_ID = 0x7D;
-const SYSEX_DRUM_ID = 0x65;
+// Dato DRUM manufacturer-specific SysEx header
+// Based on custom protocol: manufacturer ID 00 22 01, device ID 0x65
+const DATO_MANUFACTURER_ID: number[] = [0x00, 0x22, 0x01];
+const DATO_DRUM_DEVICE_ID = 0x65;
 const SYSEX_UNIVERSAL_NONREALTIME_ID = 0x7E;
 const SYSEX_ALL_ID = 0x7F;
 const SYSEX_REBOOT_BOOTLOADER = 0x0B;
@@ -307,10 +309,11 @@ function rebootToBootloader() {
         return;
     }
 
+    // Use Dato manufacturer SysEx header (00 22 01) and DRUM device ID (0x65)
     const message = [
         SYSEX_START,
-        SYSEX_DATO_ID,
-        SYSEX_DRUM_ID,
+        ...DATO_MANUFACTURER_ID,
+        DATO_DRUM_DEVICE_ID,
         SYSEX_REBOOT_BOOTLOADER,
         SYSEX_END
     ];

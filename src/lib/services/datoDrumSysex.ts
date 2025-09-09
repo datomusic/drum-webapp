@@ -3,7 +3,9 @@ import { midiStore } from '$lib/stores/midi';
 
 const SYSEX_START = 0xF0;
 const SYSEX_END = 0xF7;
-const DATO_MANUFACTURER_ID = [0x00, 0x7D, 0x65]; // Manufacturer ID for Dato
+// Dato manufacturer ID (00 22 01) and DRUM device ID (0x65)
+const DATO_MANUFACTURER_ID = [0x00, 0x22, 0x01];
+const DATO_DRUM_DEVICE_ID = 0x65;
 
 // SysEx Command Tags for Sample Transfer
 export const TAG_BEGIN_FILE_TRANSFER = 0x10;
@@ -26,8 +28,7 @@ export function sendDatoDrumSysEx(tag: number, body: number[]): void {
     const message = [
         SYSEX_START,
         ...DATO_MANUFACTURER_ID,
-        0x00, // Sub-ID 1 (as per sample_sender.js structure)
-        0x00, // Sub-ID 2
+        DATO_DRUM_DEVICE_ID,
         tag,
         ...body,
         SYSEX_END
