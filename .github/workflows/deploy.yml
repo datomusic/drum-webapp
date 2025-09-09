@@ -21,11 +21,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Setup Node.js
+      # Use cache only when a lockfile exists; otherwise setup without cache
+      - name: Setup Node.js (cached)
+        if: ${{ hashFiles('**/package-lock.json') != '' || hashFiles('**/npm-shrinkwrap.json') != '' || hashFiles('**/yarn.lock') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
+
+      - name: Setup Node.js (no cache)
+        if: ${{ hashFiles('**/package-lock.json') == '' && hashFiles('**/npm-shrinkwrap.json') == '' && hashFiles('**/yarn.lock') == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
           
       - name: Install dependencies
         run: |
