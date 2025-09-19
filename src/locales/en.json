@@ -16,6 +16,7 @@
   "midi_requesting_access": "Asking for permission...",
   "midi_not_supported": "Your browser can't connect to the DRUM. Try Chrome, Edge, or Opera.",
   "midi_request_access_button": "Allow Connection",
+  "connected": "Connected",
   "device_connected_status": "Connected to {deviceName}",
   "device_disconnect_button": "Disconnect",
   "device_not_connected_status": "No Dato DRUM connected.",

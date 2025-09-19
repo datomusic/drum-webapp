@@ -2,7 +2,8 @@
 	import '../app.css';
 	import { _, locale } from 'svelte-i18n';
 	import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
-	
+	import { midiStore } from '$lib/stores/midi';
+
 	let { children } = $props();
 
 	const locales = [
@@ -84,7 +85,19 @@
 	</main>
 
 	<footer class="bg-gray-200 p-4 text-center text-gray-600">
-		<p>&copy; {new Date().getFullYear()} {$_('app_name')}</p>
+		<div class="flex justify-between items-center max-w-screen-lg mx-auto">
+			<p>&copy; {new Date().getFullYear()} {$_('app_name')}</p>
+			{#if $midiStore.isConnected}
+				<button
+					class="flex items-center gap-2 text-sm hover:text-gray-800 transition-colors"
+					onclick={midiStore.disconnectDevice}
+					title={$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } }) + ' - ' + $_('device_disconnect_button')}
+				>
+					<div class="w-3 h-3 bg-green-500 rounded-full"></div>
+					<span class="hidden sm:inline">{$_('connected')}</span>
+				</button>
+			{/if}
+		</div>
 	</footer>
 
 	{#if $isDraggingOverWindow}

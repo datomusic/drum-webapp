@@ -117,24 +117,36 @@
             <button class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" onclick={midiStore.requestMidiAccess}>
                 {$_('midi_request_access_button')}
             </button>
-        {:else if $midiStore.isConnected}
+        {:else if $midiStore.isConnected && !$firmwareUpdateAvailable}
             <p>
                 {$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } })}
                 {#if $midiStore.firmwareVersion}
                     ({$_('firmware_version_label', { values: { version: $midiStore.firmwareVersion } })}){/if}
             </p>
-            {#if $firmwareUpdateAvailable} <!-- ADDED: Firmware update notification block -->
-                <p class="text-yellow-700 mt-2">
-                    {$_('firmware_update_available', { values: { latestVersion: LATEST_FIRMWARE_VERSION } })}
-                </p>
-                <a
-                    href={FIRMWARE_DOWNLOAD_URL}
-                    download
-                    class="inline-block mt-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-                >
-                    {$_('download_firmware_button')}
-                </a>
-            {/if}
+            <div class="mt-2 flex gap-2">
+                <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" onclick={handleDisconnect}>
+                    {$_('device_disconnect_button')}
+                </button>
+                <button class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600" onclick={handleRebootToBootloader}>
+                    {$_('reboot_bootloader_button')}
+                </button>
+            </div>
+        {:else if $midiStore.isConnected && $firmwareUpdateAvailable}
+            <p>
+                {$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } })}
+                {#if $midiStore.firmwareVersion}
+                    ({$_('firmware_version_label', { values: { version: $midiStore.firmwareVersion } })}){/if}
+            </p>
+            <p class="text-yellow-700 mt-2">
+                {$_('firmware_update_available', { values: { latestVersion: LATEST_FIRMWARE_VERSION } })}
+            </p>
+            <a
+                href={FIRMWARE_DOWNLOAD_URL}
+                download
+                class="inline-block mt-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            >
+                {$_('download_firmware_button')}
+            </a>
             <div class="mt-2 flex gap-2">
                 <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" onclick={handleDisconnect}>
                     {$_('device_disconnect_button')}
