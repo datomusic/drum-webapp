@@ -8,9 +8,12 @@
  * @returns An object with major, minor, patch as numbers, and optional commits as a number, or null if parsing fails.
  */
 function parseFirmwareVersion(versionString: string): { major: number; minor: number; patch: number; commits?: number } | null {
+    // Remove 'v' prefix if present (e.g., "v0.8.3" -> "0.8.3")
+    const cleanVersion = versionString.replace(/^v/, '');
+
     // Regex to match "X.Y.Z" or "X.Y.Z-dev.C" where X, Y, Z, C are digits
     const regex = /(\d+)\.(\d+)\.(\d+)(?:-dev\.(\d+))?$/;
-    const match = versionString.match(regex);
+    const match = cleanVersion.match(regex);
 
     if (match) {
         const parsed = {
