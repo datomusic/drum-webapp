@@ -72,31 +72,40 @@
   }
 </script>
 
-<button
-  class="
-    voice-component
-    w-20 h-20
-    rounded-lg
-    flex items-center justify-center
-    shadow-sm
-    hover:shadow-md
-    transition-all duration-150 ease-in-out
-    cursor-pointer
-    border-2 border-transparent
-    relative
-  "
-  class:border-dashed={isDragOver}
-  class:border-blue-500={isDragOver}
-  class:bg-blue-100={isDragOver}
-  class:z-[1000]={$isDraggingOverWindow}
-  style="{backgroundStyle} {filterStyle}"
-  onclick={handleClick}
-  ondragover={handleDragOver}
-  ondragleave={handleDragLeave}
-  ondrop={handleDrop}
->
-  <img src={imageSrc} alt="Voice" class="w-16 h-16" />
-</button>
+<div class="flex flex-col items-center gap-2">
+  <button
+    class="
+      voice-component
+      w-24 h-24
+      rounded-lg
+      flex items-center justify-center
+      shadow-sm
+      hover:shadow-md
+      transition-all duration-150 ease-in-out
+      cursor-pointer
+      border-2 border-transparent
+      relative
+    "
+    class:border-dashed={isDragOver}
+    class:border-blue-500={isDragOver}
+    class:bg-blue-100={isDragOver}
+    class:z-[1000]={$isDraggingOverWindow}
+    style="{backgroundStyle} {filterStyle}"
+    onclick={handleClick}
+    ondragover={handleDragOver}
+    ondragleave={handleDragLeave}
+    ondrop={handleDrop}
+  >
+    <img src={imageSrc} alt="Voice" class="w-20 h-20" />
+  </button>
+
+  <div class="flex gap-1">
+    <button class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 transition-colors" aria-label="Record">
+    </button>
+    <button class="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors" aria-label="Browse">
+    </button>
+  </div>
+</div>
 
 <style>
 

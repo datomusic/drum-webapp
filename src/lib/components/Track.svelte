@@ -69,11 +69,11 @@
 </script>
 
 <div
-  class="track-container relative flex items-center w-full h-24 overflow-hidden bg-gray-100 mb-8"
+  class="track-container relative flex items-center w-full h-36 overflow-hidden bg-white mb-8"
   bind:clientWidth={containerWidthPx}
 >
   <div
-    class="button-strip absolute flex items-center bg-gray-200"
+    class="button-strip absolute flex items-center bg-white"
     style="transform: translateX({$stripTranslateX}px); will-change: transform; white-space: nowrap;"
   >
     {#each samples as sample, i (sample.midiNoteNumber)}
@@ -103,7 +103,7 @@
 <style>
   /* Minimal styles needed as Tailwind and inline styles handle most of it.
      will-change and white-space are added for the button strip for performance and layout.
-     The h-24 on track-container ensures enough vertical space.
+     The h-36 on track-container ensures enough vertical space for Voice component with buttons.
      SampleButton and Voice components are expected to be sm:w-20 sm:h-20 (80px).
    */
 </style>
