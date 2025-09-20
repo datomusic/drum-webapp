@@ -11,6 +11,7 @@ interface MidiState {
     error: string | null;
     isRequestingAccess: boolean;
     firmwareVersion: string | null;
+    ignoreFirmwareUpdate: boolean;
 }
 
 const initialState: MidiState = {
@@ -23,6 +24,7 @@ const initialState: MidiState = {
     error: null,
     isRequestingAccess: false,
     firmwareVersion: null,
+    ignoreFirmwareUpdate: false,
 };
 
 const SYSEX_START = 0xF0;
@@ -175,6 +177,13 @@ function _setFirmwareVersion(fwVersion: string | null) {
     }));
 }
 
+function _setIgnoreFirmwareUpdate(ignore: boolean) {
+    update(state => ({
+        ...state,
+        ignoreFirmwareUpdate: ignore,
+    }));
+}
+
 // Action to update the list of available MIDI devices, typically on state change
 function _updateAvailableMidiDevices(midiAccess: MIDIAccess) {
     update(state => ({
@@ -245,13 +254,19 @@ function connectDevice(deviceId: string) {
                 input.onmidimessage = (event) => {
                     const data = event.data;
                     console.log('Incoming MIDI message:', data);
+                    console.log('Message as hex:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
 
                     if (data[0] === SYSEX_START) {
+                        console.log('Detected SysEx message, parsing...');
                         const fwVersion = parseSysExIdentityReply(data);
                         if (fwVersion) {
+                            console.log('Successfully parsed firmware version:', fwVersion);
                             _setFirmwareVersion(fwVersion);
+                        } else {
+                            console.log('Failed to parse firmware version from SysEx');
                         }
                     } else {
+                        console.log('Regular MIDI message, handling as note...');
                         handleMidiNoteMessage(data);
                     }
                 };
@@ -342,6 +357,10 @@ function playNote(noteNumber: number) {
     }
 }
 
+function ignoreFirmwareUpdate() {
+    _setIgnoreFirmwareUpdate(true);
+}
+
 export const midiStore = {
     subscribe,
     requestMidiAccess,
@@ -350,4 +369,5 @@ export const midiStore = {
     playNote,
     requestIdentity,
     rebootToBootloader,
+    ignoreFirmwareUpdate,
 };

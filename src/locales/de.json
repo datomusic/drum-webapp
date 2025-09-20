@@ -26,6 +26,7 @@
   "firmware_version_label": "Firmware: {version}",
   "reboot_bootloader_button": "Neustart in Bootloader",
   "reboot_bootloader_confirm": "Dies wird das Gerät in den Bootloader-Modus neu starten. Fortfahren?",
-  "firmware_update_available": "Eine neue Firmware-Version ({latestVersion}) ist verfügbar!",
-  "download_firmware_button": "Firmware herunterladen (.UF2)"
+  "firmware_update_available": "Firmware-Update verfügbar! Aktuell: {currentVersion}, Neueste: {latestVersion}",
+  "download_firmware_button": "Firmware herunterladen (.UF2)",
+  "ignore_firmware_update_button": "Trotzdem fortfahren"
 }

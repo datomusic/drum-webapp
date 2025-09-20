@@ -7,9 +7,9 @@
     import { LATEST_FIRMWARE_VERSION } from '$lib/config/firmware';
     import { isNewerVersion } from '$lib/utils/versioning';
 
-    // Derived store to check if a firmware update is available
+    // Derived store to check if a firmware update is available and not ignored
     const firmwareUpdateAvailable = derived(midiStore, ($midiStore) => {
-        if ($midiStore.isConnected) {
+        if ($midiStore.isConnected && !$midiStore.ignoreFirmwareUpdate) {
             return isNewerVersion($midiStore.firmwareVersion, LATEST_FIRMWARE_VERSION);
         }
         return false;

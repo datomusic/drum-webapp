@@ -26,6 +26,7 @@
   "firmware_version_label": "Firmware: {version}",
   "reboot_bootloader_button": "Opnieuw opstarten naar bootloader",
   "reboot_bootloader_confirm": "Dit zal het apparaat opnieuw opstarten naar de bootloader-modus. Doorgaan?",
-  "firmware_update_available": "Een nieuwe firmware-versie ({latestVersion}) is beschikbaar!",
-  "download_firmware_button": "Firmware downloaden (.UF2)"
+  "firmware_update_available": "Firmware-update beschikbaar! Huidige: {currentVersion}, Nieuwste: {latestVersion}",
+  "download_firmware_button": "Firmware downloaden (.UF2)",
+  "ignore_firmware_update_button": "Toch doorgaan"
 }

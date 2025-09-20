@@ -27,9 +27,9 @@
         });
     });
 
-    // ADDED: Derived store to check if a firmware update is available
+    // ADDED: Derived store to check if a firmware update is available and not ignored
     const firmwareUpdateAvailable = derived(midiStore, ($midiStore) => {
-        if ($midiStore.isConnected) {
+        if ($midiStore.isConnected && !$midiStore.ignoreFirmwareUpdate) {
             // If firmwareVersion is null, it means we haven't received it yet or it's not supported.
             // In this case, we assume an update might be needed to prompt the user.
             return isNewerVersion($midiStore.firmwareVersion, LATEST_FIRMWARE_VERSION);
@@ -138,15 +138,20 @@
                     ({$_('firmware_version_label', { values: { version: $midiStore.firmwareVersion } })}){/if}
             </p>
             <p class="text-yellow-700 mt-2">
-                {$_('firmware_update_available', { values: { latestVersion: LATEST_FIRMWARE_VERSION } })}
+                {$_('firmware_update_available', { values: { currentVersion: $midiStore.firmwareVersion || 'Unknown', latestVersion: LATEST_FIRMWARE_VERSION } })}
             </p>
-            <a
-                href={FIRMWARE_DOWNLOAD_URL}
-                download
-                class="inline-block mt-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-            >
-                {$_('download_firmware_button')}
-            </a>
+            <div class="mt-2 flex gap-2">
+                <a
+                    href={FIRMWARE_DOWNLOAD_URL}
+                    download
+                    class="inline-block px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                >
+                    {$_('download_firmware_button')}
+                </a>
+                <button class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600" onclick={midiStore.ignoreFirmwareUpdate}>
+                    {$_('ignore_firmware_update_button')}
+                </button>
+            </div>
             <div class="mt-2 flex gap-2">
                 <button class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600" onclick={handleDisconnect}>
                     {$_('device_disconnect_button')}
