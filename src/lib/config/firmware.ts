@@ -5,7 +5,7 @@
  * This should match the version string format (e.g., "1.0.0-dev.10").
  * Update this value when a new firmware is released.
  */
-export const LATEST_FIRMWARE_VERSION = "v0.8.3";
+export const LATEST_FIRMWARE_VERSION = "v0.9.0";
 
 /**
  * The URL to download the latest firmware (.uf2) file.
@@ -13,4 +13,4 @@ export const LATEST_FIRMWARE_VERSION = "v0.8.3";
  * For example, if placed in the `static` directory, it would be `/firmware/dato_drum_v1.0.0-dev.10.uf2`.
  * Ensure the file exists at this path.
  */
-export const FIRMWARE_DOWNLOAD_URL = "https://github.com/datomusic/drum-firmware/releases/download/v0.8.3/drum-0.8.3.uf2";
+export const FIRMWARE_DOWNLOAD_URL = "https://github.com/datomusic/drum-firmware/releases/download/v0.9.0/drum-0.9.0.uf2";
