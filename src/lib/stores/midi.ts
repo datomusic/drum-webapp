@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
-import { LATEST_FIRMWARE_VERSION } from '$lib/config/firmware'; // Import LATEST_FIRMWARE_VERSION
+import { getCurrentFirmwareVersion } from '$lib/config/firmware';
+import { createLogger, isMidiRealtimeMessage, isMidiSystemMessage } from '$lib/utils/logger';
 
 interface MidiState {
     access: MIDIAccess | null;
@@ -55,16 +56,42 @@ const NOTE_ON_VELOCITY = 127;
 const NOTE_OFF_VELOCITY = 0;
 const NOTE_DURATION_MS = 100;
 
-function parseSysExIdentityReply(data: Uint8Array): string | null {
-    console.log('Received SysEx message for parsing:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
+const logger = createLogger('MIDI');
 
+function parseFirmwareVersionReply(data: Uint8Array): string | null {
+    logger.debug('Received SysEx message for parsing: ' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '), 'sysex');
+    logger.debug('Message length: ' + data.length, 'sysex');
+
+    // Check for custom Dato protocol firmware version response
+    // Expected format: F0 00 22 01 65 01 <major> <minor> <patch> F7
+    const REQUEST_FIRMWARE_VERSION = 0x01;
+
+    if (data.length >= 9 &&
+        data[0] === SYSEX_START &&
+        data[1] === DATO_MANUFACTURER_ID[0] && // 0x00
+        data[2] === DATO_MANUFACTURER_ID[1] && // 0x22
+        data[3] === DATO_MANUFACTURER_ID[2] && // 0x01
+        data[4] === DATO_DRUM_DEVICE_ID &&     // 0x65
+        data[5] === REQUEST_FIRMWARE_VERSION && // 0x01
+        data[data.length - 1] === SYSEX_END) {
+
+        const major = data[6];
+        const minor = data[7];
+        const patch = data[8];
+
+        logger.debug('Parsed version components (custom protocol): ' + JSON.stringify({ major, minor, patch }), 'firmware');
+
+        const fwVersion = `${major}.${minor}.${patch}`;
+        logger.info(`Identified device firmware: ${fwVersion}`, 'firmware');
+        logger.info(`Latest available firmware: ${getCurrentFirmwareVersion()}`, 'firmware');
+        return fwVersion;
+    }
+
+    // Fallback: Try to parse as standard MIDI Identity Reply (for backwards compatibility)
     const SYSEX_EXTRA_BYTE = 0x00;
-
     const hasExtraByte = data[1] === SYSEX_EXTRA_BYTE;
     const offset = hasExtraByte ? 1 : 0;
 
-    // Expected structure: F0 7E <device_id> 06 02 ... F7
-    // Firmware version starts at data[10+offset] for Dato DRUM
     if (data.length > 13 + offset &&
         data[1 + offset] === SYSEX_UNIVERSAL_NONREALTIME_ID &&
         data[3 + offset] === SYSEX_GENERAL_INFO &&
@@ -75,18 +102,21 @@ function parseSysExIdentityReply(data: Uint8Array): string | null {
         const patch = data[12 + offset];
         const commits = data[13 + offset]; // Dato-specific: number of commits
 
-        // Construct firmware version string, omitting '-dev.0' if commits is 0
+        logger.debug('Parsed version components (standard MIDI): ' + JSON.stringify({ major, minor, patch, commits }), 'firmware');
+
         const fwVersion = commits === 0
             ? `${major}.${minor}.${patch}`
             : `${major}.${minor}.${patch}-dev.${commits}`;
-            
-        console.log(`Identified device firmware: ${fwVersion}`);
-        console.log(`Latest available firmware: ${LATEST_FIRMWARE_VERSION}`);
+
+        logger.info(`Identified device firmware: ${fwVersion}`, 'firmware');
+        logger.info(`Latest available firmware: ${getCurrentFirmwareVersion()}`, 'firmware');
         return fwVersion;
-    } else {
-        console.log('SysEx message is not a recognized Identity Reply or is malformed.');
-        return null;
     }
+
+    logger.warn('SysEx message is not a recognized firmware version response.', 'sysex');
+    logger.debug('Expected custom protocol: F0 00 22 01 65 01 <major> <minor> <patch> F7', 'sysex');
+    logger.debug('Or standard MIDI Identity Reply', 'sysex');
+    return null;
 }
 
 function handleMidiNoteMessage(data: Uint8Array): void {
@@ -212,15 +242,17 @@ async function requestMidiAccess() {
         _setMidiAccessGranted(midiAccess);
 
         midiAccess.onstatechange = (event) => {
-            console.log('MIDI state change:', event.port.name, event.port.state);
-            _updateAvailableMidiDevices(midiAccess);
-            if (event.port.state === 'disconnected' && get(midiStore).selectedOutput?.id === event.port.id) {
-                disconnectDevice();
+            if (event.port) {
+                logger.debug('MIDI state change: ' + event.port.name + ', ' + event.port.state);
+                _updateAvailableMidiDevices(midiAccess);
+                if (event.port.state === 'disconnected' && get(midiStore).selectedOutput?.id === event.port.id) {
+                    disconnectDevice();
+                }
             }
         };
-        console.log('MIDI access granted:', midiAccess);
+        logger.info('MIDI access granted');
     } catch (err: unknown) {
-        console.error('Failed to get MIDI access:', err);
+        logger.error('Failed to get MIDI access: ' + (err instanceof Error ? err.message : String(err)));
         let errorMessage = 'Failed to get MIDI access. Please ensure your device is connected and browser permissions are granted.';
         if (err instanceof Error) {
             errorMessage = err.message;
@@ -253,36 +285,53 @@ function connectDevice(deviceId: string) {
             if (input) {
                 input.onmidimessage = (event) => {
                     const data = event.data;
-                    console.log('Incoming MIDI message:', data);
-                    console.log('Message as hex:', Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '));
+                    if (!data) {
+                        logger.warn('Received MIDI message with no data');
+                        return;
+                    }
+
+                    const statusByte = data[0];
+
+                    // Filter out realtime messages (they're very frequent and noisy)
+                    if (isMidiRealtimeMessage(statusByte)) {
+                        logger.debug(`MIDI realtime message: ${statusByte.toString(16)}`, 'realtime');
+                        return;
+                    }
+
+                    // Log other messages with appropriate filtering
+                    if (isMidiSystemMessage(statusByte)) {
+                        logger.debug('MIDI system message: ' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '), 'midi');
+                    } else {
+                        logger.debug('MIDI message: ' + Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(' '), 'midi');
+                    }
 
                     if (data[0] === SYSEX_START) {
-                        console.log('Detected SysEx message, parsing...');
-                        const fwVersion = parseSysExIdentityReply(data);
+                        logger.debug('Detected SysEx message, parsing...', 'sysex');
+                        const fwVersion = parseFirmwareVersionReply(data);
                         if (fwVersion) {
-                            console.log('Successfully parsed firmware version:', fwVersion);
+                            logger.info('Successfully parsed firmware version: ' + fwVersion, 'firmware');
                             _setFirmwareVersion(fwVersion);
                         } else {
-                            console.log('Failed to parse firmware version from SysEx');
+                            logger.debug('Failed to parse firmware version from SysEx', 'sysex');
                         }
                     } else {
-                        console.log('Regular MIDI message, handling as note...');
+                        logger.debug('Regular MIDI message, handling as note...', 'midi');
                         handleMidiNoteMessage(data);
                     }
                 };
-                console.log('Listening to MIDI input:', input.name);
+                logger.info('Listening to MIDI input: ' + input.name);
             } else {
-                console.warn('No matching MIDI input found for selected output device.');
+                logger.warn('No matching MIDI input found for selected output device.');
             }
             _setDeviceConnected(output, input || null);
-            console.log('Connected to MIDI device:', output.name);
+            logger.info('Connected to MIDI device: ' + output.name);
         } else {
             _setDeviceConnectionError('Selected device not found.');
-            console.error('Device not found:', deviceId);
+            logger.error('Device not found: ' + deviceId);
         }
     } else {
         _setDeviceConnectionError('MIDI outputs/inputs not available. Please request MIDI access first.');
-        console.error('MIDI outputs/inputs not available.');
+        logger.error('MIDI outputs/inputs not available.');
     }
 }
 
@@ -294,33 +343,34 @@ function disconnectDevice() {
     _setDeviceDisconnected();
     activeMidiNote.set(null);
     selectedSampleMidiNote.set(null);
-    console.log('Disconnected from MIDI device.');
+    logger.info('Disconnected from MIDI device.');
 }
 
 function requestIdentity() {
     const { selectedOutput } = get(midiStore);
     if (!selectedOutput) {
-        console.warn('No MIDI output selected. Cannot request identity.');
+        logger.warn('No MIDI output selected. Cannot request identity.');
         return;
     }
 
+    // Use the same custom protocol as drumtool.js
+    const REQUEST_FIRMWARE_VERSION = 0x01;
     const message = [
         SYSEX_START,
-        SYSEX_UNIVERSAL_NONREALTIME_ID,
-        SYSEX_ALL_ID,
-        SYSEX_GENERAL_INFO,
-        SYSEX_IDENTITY_REQUEST,
+        ...DATO_MANUFACTURER_ID,  // [0x00, 0x22, 0x01]
+        DATO_DRUM_DEVICE_ID,      // 0x65
+        REQUEST_FIRMWARE_VERSION, // 0x01
         SYSEX_END
     ];
 
     selectedOutput.send(message);
-    console.log('Sent SysEx Identity Request:', message);
+    logger.info('Sent Firmware Version Request: ' + Array.from(message).map(b => b.toString(16).padStart(2, '0')).join(' '), 'sysex');
 }
 
 function rebootToBootloader() {
     const { selectedOutput } = get(midiStore);
     if (!selectedOutput) {
-        console.warn('No MIDI output selected. Cannot send reboot command.');
+        logger.warn('No MIDI output selected. Cannot send reboot command.');
         return;
     }
 
@@ -334,7 +384,7 @@ function rebootToBootloader() {
     ];
 
     selectedOutput.send(message);
-    console.log('Sent SysEx Reboot to Bootloader command:', message);
+    logger.info('Sent SysEx Reboot to Bootloader command: ' + Array.from(message).map(b => b.toString(16).padStart(2, '0')).join(' '), 'sysex');
 }
 
 function playNote(noteNumber: number) {
@@ -353,7 +403,7 @@ function playNote(noteNumber: number) {
             }
         }, NOTE_DURATION_MS);
     } else {
-        console.warn('No MIDI output selected. Cannot play note.');
+        logger.warn('No MIDI output selected. Cannot play note.');
     }
 }
 

@@ -4,12 +4,16 @@
     import { _ } from 'svelte-i18n';
     import { midiStore } from '$lib/stores/midi';
     import { onMount } from 'svelte';
-    import { derived } from 'svelte/store';
-    import { LATEST_FIRMWARE_VERSION, FIRMWARE_DOWNLOAD_URL } from '$lib/config/firmware'; // ADDED: Import LATEST_FIRMWARE_VERSION and FIRMWARE_DOWNLOAD_URL
-    import { isNewerVersion } from '$lib/utils/versioning'; // ADDED: Import isNewerVersion
+    import { derived, get } from 'svelte/store';
+    import { getLatestFirmware, getCurrentFirmwareVersion } from '$lib/config/firmware';
+    import { isNewerVersion } from '$lib/utils/versioning';
+    import { createLogger } from '$lib/utils/logger';
 
     let selectedDeviceId: string | undefined = $state();
     let userDisconnected: boolean = $state(false);
+    let latestFirmwareInfo: { version: string; downloadUrl: string; size?: number } | null = $state(null);
+
+    const logger = createLogger('DeviceConnection');
 
     // Define the filter array for Dato DRUM devices
     // A device will match if its name contains any of these strings (case-insensitive)
@@ -27,19 +31,34 @@
         });
     });
 
-    // ADDED: Derived store to check if a firmware update is available and not ignored
+    // Derived store to check if a firmware update is available and not ignored
     const firmwareUpdateAvailable = derived(midiStore, ($midiStore) => {
-        if ($midiStore.isConnected && !$midiStore.ignoreFirmwareUpdate) {
+        if ($midiStore.isConnected && !$midiStore.ignoreFirmwareUpdate && latestFirmwareInfo) {
             // If firmwareVersion is null, it means we haven't received it yet or it's not supported.
             // In this case, we assume an update might be needed to prompt the user.
-            return isNewerVersion($midiStore.firmwareVersion, LATEST_FIRMWARE_VERSION);
+            return isNewerVersion($midiStore.firmwareVersion, latestFirmwareInfo.version);
         }
         return false;
     });
 
-    // Automatically request MIDI access when the component mounts
-    onMount(() => {
+    // Automatically request MIDI access and fetch latest firmware info when the component mounts
+    onMount(async () => {
         midiStore.requestMidiAccess();
+
+        // Fetch latest firmware info
+        try {
+            latestFirmwareInfo = await getLatestFirmware();
+            logger.info('Latest firmware info loaded: ' + JSON.stringify(latestFirmwareInfo), 'firmware');
+        } catch (error) {
+            logger.warn('Failed to fetch latest firmware info: ' + (error instanceof Error ? error.message : String(error)), 'firmware');
+            // Use fallback values
+            latestFirmwareInfo = {
+                version: getCurrentFirmwareVersion(),
+                downloadUrl: import.meta.env.MODE === 'development'
+                    ? 'https://github.com/datomusic/drum-firmware/releases/latest'
+                    : '/playground/drum-webapp/firmware/latest.uf2'
+            };
+        }
     });
 
 
@@ -99,7 +118,19 @@
     // Reactive statement to request identity when connected and firmware version is not yet known
     run(() => {
         if ($midiStore.isConnected && $midiStore.selectedOutput && !$midiStore.firmwareVersion) {
+            logger.debug('Device connected but no firmware version yet, requesting identity...', 'firmware');
+
+            // Request identity immediately
             midiStore.requestIdentity();
+
+            // Also try again after a short delay in case the device needs time
+            setTimeout(() => {
+                const currentState = get(midiStore);
+                if (currentState.isConnected && currentState.selectedOutput && !currentState.firmwareVersion) {
+                    logger.debug('Retrying identity request after delay...', 'firmware');
+                    midiStore.requestIdentity();
+                }
+            }, 1000);
         }
     });
 </script>
@@ -138,11 +169,11 @@
                     ({$_('firmware_version_label', { values: { version: $midiStore.firmwareVersion } })}){/if}
             </p>
             <p class="text-yellow-700 mt-2">
-                {$_('firmware_update_available', { values: { currentVersion: $midiStore.firmwareVersion || 'Unknown', latestVersion: LATEST_FIRMWARE_VERSION } })}
+                {$_('firmware_update_available', { values: { currentVersion: $midiStore.firmwareVersion || 'Unknown', latestVersion: latestFirmwareInfo?.version || getCurrentFirmwareVersion() } })}
             </p>
             <div class="mt-2 flex gap-2">
                 <a
-                    href={FIRMWARE_DOWNLOAD_URL}
+                    href={latestFirmwareInfo?.downloadUrl || 'https://github.com/datomusic/drum-firmware/releases/latest'}
                     download
                     class="inline-block px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
                 >

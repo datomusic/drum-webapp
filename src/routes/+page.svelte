@@ -3,20 +3,9 @@
     import SampleTable from '$lib/components/SampleTable.svelte';
     import DeviceConnection from '$lib/components/DeviceConnection.svelte';
     import { midiStore } from '$lib/stores/midi';
-    import { derived } from 'svelte/store';
-    import { LATEST_FIRMWARE_VERSION } from '$lib/config/firmware';
-    import { isNewerVersion } from '$lib/utils/versioning';
-
-    // Derived store to check if a firmware update is available and not ignored
-    const firmwareUpdateAvailable = derived(midiStore, ($midiStore) => {
-        if ($midiStore.isConnected && !$midiStore.ignoreFirmwareUpdate) {
-            return isNewerVersion($midiStore.firmwareVersion, LATEST_FIRMWARE_VERSION);
-        }
-        return false;
-    });
 </script>
 
-{#if !$midiStore.isConnected || $firmwareUpdateAvailable}
+{#if !$midiStore.isConnected}
     <div class="fixed inset-0 flex items-center justify-center bg-gray-50">
         <DeviceConnection />
     </div>

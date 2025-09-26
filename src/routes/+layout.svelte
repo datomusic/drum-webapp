@@ -94,7 +94,9 @@
 					title={$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } }) + ' - ' + $_('device_disconnect_button')}
 				>
 					<div class="w-3 h-3 bg-green-500 rounded-full"></div>
-					<span class="hidden sm:inline">{$_('connected')}</span>
+					<span class="hidden sm:inline">
+						{$_('connected')}{#if $midiStore.firmwareVersion} ({$midiStore.firmwareVersion}){/if}
+					</span>
 				</button>
 			{/if}
 		</div>
