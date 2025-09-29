@@ -51,7 +51,7 @@
 </script>
 
 <div
-	class="app-container relative"
+	class="app-container relative flex flex-col"
 	ondragenter={handleWindowDragEnter}
 	ondragover={handleWindowDragOver}
 	ondragleave={handleWindowDragLeave}
@@ -80,7 +80,7 @@
 		</nav>
 	</header>
 
-	<main class="p-4 min-h-[calc(100vh-120px)]">
+	<main class="p-4 flex-1">
 		{@render children()}
 	</main>
 

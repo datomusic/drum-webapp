@@ -83,8 +83,8 @@
     ];
 </script>
 
-<section class="w-full bg-white py-4">
-    <div class="mx-auto px-4">
+<section class="w-full bg-white h-full">
+    <div class="mx-auto px-4 h-full grid grid-rows-4">
         {#each tracks as track, i (i)}
             <Track samples={track.samples} trackIndex={i} />
         {/each}

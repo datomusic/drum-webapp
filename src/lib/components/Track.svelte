@@ -69,12 +69,12 @@
 </script>
 
 <div
-  class="track-container relative flex items-center w-full h-36 overflow-hidden bg-white mb-8"
+  class="track-container relative flex items-center w-full h-full bg-white"
   bind:clientWidth={containerWidthPx}
 >
   <div
-    class="button-strip absolute flex items-center bg-white"
-    style="transform: translateX({$stripTranslateX}px); will-change: transform; white-space: nowrap;"
+    class="button-strip absolute flex bg-white"
+    style="transform: translateX({$stripTranslateX}px); top: 0px; will-change: transform; white-space: nowrap;"
   >
     {#each samples as sample, i (sample.midiNoteNumber)}
       <div
@@ -89,7 +89,7 @@
     {/each}
   </div>
 
-  <div class="voice-overlay-container z-10 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+  <div class="voice-overlay-container z-10 absolute top-10 left-1/2 -translate-x-1/2 -translate-y-1/2">
     {#if samples[selectedSampleIndex]}
       <Voice
         color={selectedVoiceColor}
