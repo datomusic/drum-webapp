@@ -18,7 +18,7 @@
   let uploadError = $state<string | null>(null);
 
   // Recording state
-  let recordingStatus = $state<'idle' | 'requesting-permission' | 'recording' | 'processing' | 'error'>('idle');
+  let recordingStatus = $state<'idle' | 'requesting-permission' | 'waiting' | 'recording' | 'processing' | 'error'>('idle');
   let recordingProgress = $state<number>(0);
   let recordingError = $state<string | null>(null);
 
@@ -266,6 +266,9 @@
           if (progress.stage === 'requesting') {
             recordingStatus = 'requesting-permission';
             recordingProgress = 0;
+          } else if (progress.stage === 'waiting') {
+            recordingStatus = 'waiting';
+            recordingProgress = 0;
           } else if (progress.stage === 'recording') {
             recordingStatus = 'recording';
             recordingProgress = progress.percentage;
@@ -337,10 +340,12 @@
     <img src={imageSrc} alt="Voice" class="w-20 h-20" />
 
     <!-- Recording progress indicator -->
-    {#if recordingStatus === 'recording' || recordingStatus === 'processing'}
+    {#if recordingStatus === 'waiting' || recordingStatus === 'recording' || recordingStatus === 'processing'}
       <div class="absolute inset-0 flex items-center justify-center bg-yellow-500 bg-opacity-70 rounded-lg">
         <div class="text-white text-xs font-bold">
-          {#if recordingStatus === 'recording'}
+          {#if recordingStatus === 'waiting'}
+            🎧 Waiting...
+          {:else if recordingStatus === 'recording'}
             🎤 {Math.round(recordingProgress)}%
           {:else}
             ⚙️ {Math.round(recordingProgress)}%
