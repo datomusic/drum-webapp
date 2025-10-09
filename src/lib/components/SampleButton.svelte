@@ -6,9 +6,12 @@
   import { colorFilters } from '$lib/stores/colorFilters'; // Import colorFilters store
   import { get } from 'svelte/store';
 
-  
+  // MIDI display offset: converts MIDI note 30-61 to display index 1-32
+  const MIDI_DISPLAY_OFFSET = 30;
 
-  
+
+
+
   interface Props {
     /**
    * The color of the button, e.g., '#FF0000' or 'red'.
@@ -21,6 +24,9 @@
   }
 
   let { color, midiNoteNumber }: Props = $props();
+
+  // Calculate 1-based display index from MIDI note number
+  let displayIndex = $derived(midiNoteNumber - MIDI_DISPLAY_OFFSET + 1);
 
   // Reactive variable to determine if this button is currently active
   let isActive = $derived($activeMidiNote === midiNoteNumber);
@@ -52,7 +58,7 @@
   onclick={handleClick}
   onkeydown={bubble('keydown')}
 >
-  {midiNoteNumber}
+  {displayIndex}
 </button>
 
 <style>

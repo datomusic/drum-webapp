@@ -69,7 +69,7 @@
 </script>
 
 <div
-  class="track-container relative flex items-center w-full h-full bg-white"
+  class="track-container relative flex items-center w-full h-40"
   bind:clientWidth={containerWidthPx}
 >
   <div
