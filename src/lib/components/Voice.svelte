@@ -10,6 +10,16 @@
 
   const logger = createLogger('Voice');
 
+  // Onset-trigger config (simple wiring; replace with UI controls later if desired)
+  const USE_ONSET_TRIGGER = true;
+  const ONSET_TRIGGER_OPTIONS = {
+    threshold: 0.5,   // 0..1 linear
+    preRollMs: 120,   // include a short lead-in
+    holdMs: 12,       // minimum ms above threshold
+    timeoutMs: 10000, // abort if no trigger within 10s
+    highpassHz: 80    // reduce low-frequency rumble
+  };
+
   // This component represents the "Voice" settings for a sample slot.
   // It displays an icon indicating its purpose and acts as a drop target for audio files.
 
@@ -61,8 +71,8 @@
   let backgroundStyle = $derived(
     isDragOver
       ? '' // When dragging over, let Tailwind class 'bg-blue-100' handle background
-      : recordingStatus === 'recording' || recordingStatus === 'processing'
-      ? 'background-color: #fef3c7;' // Yellow tint while recording
+      : (recordingStatus === 'waiting' || recordingStatus === 'recording' || recordingStatus === 'processing')
+      ? 'background-color: #fef3c7;' // Yellow tint while arming/recording/processing
       : recordingStatus === 'error'
       ? 'background-color: #fee2e2;' // Red tint for error
       : uploadStatus === 'success'
@@ -259,7 +269,8 @@
 
       const processedAudio = await recordAudio(
         {
-          deviceId: audioInputState.selectedDeviceId || undefined
+          deviceId: audioInputState.selectedDeviceId || undefined,
+          ...(USE_ONSET_TRIGGER ? ONSET_TRIGGER_OPTIONS : {})
         },
         (progress: RecordingProgress) => {
           // Update recording status based on progress
