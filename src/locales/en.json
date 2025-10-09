@@ -28,5 +28,16 @@
   "reboot_bootloader_confirm": "This will reboot the device to bootloader mode. Continue?",
   "firmware_update_available": "Firmware update available! Current: {currentVersion}, Latest: {latestVersion}",
   "download_firmware_button": "Download Firmware (.UF2)",
-  "ignore_firmware_update_button": "Continue Anyway"
+  "ignore_firmware_update_button": "Continue Anyway",
+  "recording_in_progress": "Recording...",
+  "recording_complete": "Recording complete!",
+  "recording_error": "Recording failed",
+  "microphone_permission_required": "Need microphone access",
+  "microphone_permission_denied": "Microphone access denied",
+  "microphone_access_prompt": "Please allow microphone access",
+  "audio_input_device": "Microphone",
+  "audio_input_label": "Audio input: {deviceName}",
+  "recording_not_supported": "Recording not supported in this browser",
+  "recording_button_title": "Record 1 second of audio",
+  "recording_button_title_active": "Recording..."
 }

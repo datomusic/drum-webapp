@@ -28,5 +28,16 @@
   "reboot_bootloader_confirm": "Dit zal het apparaat opnieuw opstarten naar de bootloader-modus. Doorgaan?",
   "firmware_update_available": "Firmware-update beschikbaar! Huidige: {currentVersion}, Nieuwste: {latestVersion}",
   "download_firmware_button": "Firmware downloaden (.UF2)",
-  "ignore_firmware_update_button": "Toch doorgaan"
+  "ignore_firmware_update_button": "Toch doorgaan",
+  "recording_in_progress": "Opname bezig...",
+  "recording_complete": "Opname klaar!",
+  "recording_error": "Opname mislukt",
+  "microphone_permission_required": "Microfoon-toegang nodig",
+  "microphone_permission_denied": "Microfoon-toegang geweigerd",
+  "microphone_access_prompt": "Sta microfoon-toegang toe",
+  "audio_input_device": "Microfoon",
+  "audio_input_label": "Audio-ingang: {deviceName}",
+  "recording_not_supported": "Opname wordt niet ondersteund in deze browser",
+  "recording_button_title": "Neem 1 seconde audio op",
+  "recording_button_title_active": "Opname bezig..."
 }

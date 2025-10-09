@@ -4,6 +4,8 @@
   import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
   import { sampleUploadStore, uploadQueue } from '$lib/stores/sampleUpload';
   import { isAudioFile } from '$lib/services/audioProcessor';
+  import { recordAudio, isRecordingSupported, type RecordingProgress } from '$lib/services/audioRecorder';
+  import { audioInputState, requestPermission } from '$lib/stores/audioInput.svelte';
   import { createLogger } from '$lib/utils/logger';
 
   const logger = createLogger('Voice');
@@ -14,6 +16,11 @@
   let isDragOver = $state(false);
   let uploadStatus = $state<'idle' | 'uploading' | 'success' | 'error'>('idle');
   let uploadError = $state<string | null>(null);
+
+  // Recording state
+  let recordingStatus = $state<'idle' | 'requesting-permission' | 'recording' | 'processing' | 'error'>('idle');
+  let recordingProgress = $state<number>(0);
+  let recordingError = $state<string | null>(null);
 
   interface Props {
     /**
@@ -54,6 +61,10 @@
   let backgroundStyle = $derived(
     isDragOver
       ? '' // When dragging over, let Tailwind class 'bg-blue-100' handle background
+      : recordingStatus === 'recording' || recordingStatus === 'processing'
+      ? 'background-color: #fef3c7;' // Yellow tint while recording
+      : recordingStatus === 'error'
+      ? 'background-color: #fee2e2;' // Red tint for error
       : uploadStatus === 'success'
       ? 'background-color: #d1fae5;' // Green tint for success
       : uploadStatus === 'error'
@@ -187,6 +198,116 @@
     // Reset input
     input.value = '';
   }
+
+  // Recording functionality
+  async function handleRecordClick() {
+    // Check if recording is supported
+    if (!isRecordingSupported()) {
+      recordingStatus = 'error';
+      recordingError = 'Recording not supported in this browser';
+      logger.error('Recording not supported');
+
+      // Reset error after 3 seconds
+      setTimeout(() => {
+        recordingStatus = 'idle';
+        recordingError = null;
+      }, 3000);
+      return;
+    }
+
+    // Check MIDI connection
+    if (!midiState.isConnected) {
+      recordingStatus = 'error';
+      recordingError = 'MIDI not connected';
+      logger.error('Cannot record: MIDI device not connected');
+
+      // Reset error after 3 seconds
+      setTimeout(() => {
+        recordingStatus = 'idle';
+        recordingError = null;
+      }, 3000);
+      return;
+    }
+
+    try {
+      recordingStatus = 'idle';
+      recordingError = null;
+      recordingProgress = 0;
+
+      // Check if we have permission, request if needed
+      if (!audioInputState.permissionState || audioInputState.permissionState !== 'granted') {
+        recordingStatus = 'requesting-permission';
+        logger.info('Requesting microphone permission...');
+
+        const granted = await requestPermission();
+        if (!granted) {
+          recordingStatus = 'error';
+          recordingError = 'Microphone permission denied';
+          logger.error('Microphone permission denied');
+
+          // Reset error after 3 seconds
+          setTimeout(() => {
+            recordingStatus = 'idle';
+            recordingError = null;
+          }, 3000);
+          return;
+        }
+      }
+
+      // Start recording
+      logger.info(`Recording audio for slot ${midiNoteNumber}...`);
+
+      const processedAudio = await recordAudio(
+        {
+          deviceId: audioInputState.selectedDeviceId || undefined
+        },
+        (progress: RecordingProgress) => {
+          // Update recording status based on progress
+          if (progress.stage === 'requesting') {
+            recordingStatus = 'requesting-permission';
+            recordingProgress = 0;
+          } else if (progress.stage === 'recording') {
+            recordingStatus = 'recording';
+            recordingProgress = progress.percentage;
+          } else if (progress.stage === 'processing') {
+            recordingStatus = 'processing';
+            recordingProgress = progress.percentage;
+          }
+        }
+      );
+
+      // Create a File object from the processed audio
+      const blob = new Blob([processedAudio.pcmData], { type: 'audio/wav' });
+      const file = new File([blob], processedAudio.originalFileName, { type: 'audio/wav' });
+
+      // Upload via existing upload system
+      uploadStatus = 'uploading';
+      logger.info(`Uploading recorded audio to slot ${midiNoteNumber}`);
+
+      await sampleUploadStore.quickUpload(file, midiNoteNumber);
+
+      // Success
+      recordingStatus = 'idle';
+      uploadStatus = 'success';
+      logger.info(`Successfully uploaded recording to slot ${midiNoteNumber}`);
+
+      // Reset success indicator after 2 seconds
+      setTimeout(() => {
+        uploadStatus = 'idle';
+      }, 2000);
+
+    } catch (error) {
+      recordingStatus = 'error';
+      recordingError = error instanceof Error ? error.message : 'Recording failed';
+      logger.error(`Recording failed: ${recordingError}`);
+
+      // Reset error after 3 seconds
+      setTimeout(() => {
+        recordingStatus = 'idle';
+        recordingError = null;
+      }, 3000);
+    }
+  }
 </script>
 
 <div class="flex flex-col items-center gap-2">
@@ -215,6 +336,19 @@
   >
     <img src={imageSrc} alt="Voice" class="w-20 h-20" />
 
+    <!-- Recording progress indicator -->
+    {#if recordingStatus === 'recording' || recordingStatus === 'processing'}
+      <div class="absolute inset-0 flex items-center justify-center bg-yellow-500 bg-opacity-70 rounded-lg">
+        <div class="text-white text-xs font-bold">
+          {#if recordingStatus === 'recording'}
+            🎤 {Math.round(recordingProgress)}%
+          {:else}
+            ⚙️ {Math.round(recordingProgress)}%
+          {/if}
+        </div>
+      </div>
+    {/if}
+
     <!-- Upload progress indicator -->
     {#if isUploadingThisSlot}
       <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
@@ -233,16 +367,26 @@
       <div class="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-70 rounded-lg">
         <div class="text-white text-xs text-center p-1">{uploadError}</div>
       </div>
+    {:else if recordingStatus === 'error' && recordingError}
+      <div class="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-70 rounded-lg">
+        <div class="text-white text-xs text-center p-1">{recordingError}</div>
+      </div>
     {/if}
   </button>
 
   <div class="flex gap-1">
     <button
-      class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+      class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
       aria-label="Record"
-      disabled
-      title="Recording coming soon"
+      onclick={handleRecordClick}
+      disabled={recordingStatus !== 'idle' || uploadStatus !== 'idle'}
+      title={recordingStatus !== 'idle' ? 'Recording...' : 'Record 1 second of audio'}
     >
+      {#if recordingStatus === 'recording'}
+        ⏺
+      {:else}
+        ●
+      {/if}
     </button>
     <button
       class="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center text-xs cursor-pointer"
