@@ -15,7 +15,7 @@ import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('AudioProcessor');
 
-const TARGET_SAMPLE_RATE = 44100;
+export const TARGET_SAMPLE_RATE = 44100;
 const TARGET_BIT_DEPTH = 16;
 const MAX_DURATION_SECONDS = 1;
 const MAX_SAMPLES = TARGET_SAMPLE_RATE * MAX_DURATION_SECONDS;

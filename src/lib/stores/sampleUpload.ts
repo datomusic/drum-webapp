@@ -11,7 +11,7 @@
 
 import { writable, derived, get } from 'svelte/store';
 import { midiState } from './midi.svelte';
-import { processAudioFile, isAudioFile } from '$lib/services/audioProcessor';
+import { processAudioFile, isAudioFile, type ProcessedAudio, TARGET_SAMPLE_RATE } from '$lib/services/audioProcessor';
 import { transferSampleViaSds, initializeSdsListener, cleanupSdsListener, type SdsProgress } from '$lib/services/sdsProtocol';
 import { createLogger } from '$lib/utils/logger';
 
@@ -170,10 +170,24 @@ async function uploadSample(item: UploadQueueItem): Promise<void> {
       )
     }));
 
-    logger.info(`Processing audio file: ${file.name}`);
+    let processed: ProcessedAudio;
 
-    // Process audio file
-    const processed = await processAudioFile(file);
+    // If the file is raw PCM data from the recorder, we can skip processing
+    if (file.type === 'audio/x-raw-pcm') {
+      logger.info(`Skipping audio processing for pre-processed file: ${file.name}`);
+      const pcmData = new Uint8Array(await file.arrayBuffer());
+      processed = {
+        pcmData,
+        sampleRate: TARGET_SAMPLE_RATE,
+        duration: pcmData.length / (TARGET_SAMPLE_RATE * 2), // 2 bytes per sample
+        originalFileName: file.name
+      };
+    } else {
+      logger.info(`Processing audio file: ${file.name}`);
+      processed = await processAudioFile(file);
+    }
+
+
 
     update(state => ({
       ...state,

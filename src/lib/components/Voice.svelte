@@ -277,8 +277,8 @@
       );
 
       // Create a File object from the processed audio
-      const blob = new Blob([processedAudio.pcmData], { type: 'audio/wav' });
-      const file = new File([blob], processedAudio.originalFileName, { type: 'audio/wav' });
+      const blob = new Blob([processedAudio.pcmData], { type: 'audio/x-raw-pcm' });
+      const file = new File([blob], processedAudio.originalFileName, { type: 'audio/x-raw-pcm' });
 
       // Upload via existing upload system
       uploadStatus = 'uploading';
