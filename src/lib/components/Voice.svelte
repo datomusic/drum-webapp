@@ -245,11 +245,12 @@
     >
     </button>
     <button
-      class="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+      class="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center text-xs cursor-pointer"
       aria-label="Browse"
       onclick={handleBrowseClick}
       title="Browse for audio file"
     >
+      ...
     </button>
   </div>
 
