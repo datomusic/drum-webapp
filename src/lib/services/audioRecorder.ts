@@ -44,10 +44,10 @@ export interface RecordingOptions {
   preRollMs?: number;
 
   /**
-   * Minimum time in milliseconds the signal must stay above threshold to trigger.
-   * Defaults to 12ms.
+   * Minimum time in microseconds the signal must stay above threshold to trigger.
+   * Defaults to 500 microseconds.
    */
-  holdMs?: number;
+  holdUs?: number;
 
   /**
    * Timeout in milliseconds while waiting for a trigger before aborting.
@@ -119,7 +119,7 @@ export async function recordAudio(
       const { samples, sampleRate } = await captureOnset(stream, {
         threshold: options.threshold,
         preRollMs,
-        holdMs: Math.max(1, Math.floor(options.holdMs ?? 12)),
+        holdUs: Math.max(0, Math.floor(options.holdUs ?? 500)),
         timeoutMs: Math.max(1000, Math.floor(options.timeoutMs ?? 10000)),
         highpassHz: options.highpassHz ?? 80,
         captureMs

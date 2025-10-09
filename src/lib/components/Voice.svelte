@@ -15,7 +15,7 @@
   const ONSET_TRIGGER_OPTIONS = {
     threshold: 0.1,   // 0..1 linear
     preRollMs: 1,   // include a short lead-in
-    holdMs: 0,       // minimum ms above threshold
+    holdUs: 500,     // minimum microseconds above threshold
     timeoutMs: 10000, // abort if no trigger within 10s
     highpassHz: 80    // reduce low-frequency rumble
   };

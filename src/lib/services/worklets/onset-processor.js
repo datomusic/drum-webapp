@@ -41,7 +41,10 @@ registerProcessor('onset-detector', class extends AudioWorkletProcessor {
       const c = e.data || {};
       this.cfg.threshold = typeof c.threshold === 'number' ? c.threshold : this.cfg.threshold;
       const pre = Math.max(0, Math.round(((c.preRollMs ?? 0) * sampleRate) / 1000));
-      const hold = Math.max(1, Math.round(((c.holdMs ?? 1) * sampleRate) / 1000));
+      const holdUs = (typeof c.holdUs === 'number')
+        ? c.holdUs
+        : (typeof c.holdMs === 'number' ? c.holdMs * 1000 : 500);
+      const hold = Math.max(1, Math.round((holdUs * sampleRate) / 1_000_000));
       const cap = Math.max(1, Math.round(((c.captureMs ?? 1000) * sampleRate) / 1000));
       const hp = typeof c.highpassHz === 'number' ? c.highpassHz : this.cfg.hpHz;
 

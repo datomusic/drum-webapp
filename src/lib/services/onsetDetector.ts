@@ -5,7 +5,7 @@ const logger = createLogger('OnsetDetector');
 export interface OnsetConfig {
   threshold: number;
   preRollMs: number;
-  holdMs: number;
+  holdUs: number;
   timeoutMs: number;
   highpassHz?: number;
   captureMs: number; // total capture length AFTER preroll; total output = preRollMs + captureMs
@@ -32,7 +32,7 @@ export async function captureOnset(
   node.port.postMessage({
     threshold: cfg.threshold,
     preRollMs: cfg.preRollMs,
-    holdMs: cfg.holdMs,
+    holdUs: cfg.holdUs,
     captureMs: cfg.captureMs,
     highpassHz: cfg.highpassHz ?? 80
   });
