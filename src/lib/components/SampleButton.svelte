@@ -1,10 +1,6 @@
 <script lang="ts">
-  import { createBubbler } from 'svelte/legacy';
-
-  const bubble = createBubbler();
-  import { midiStore, activeMidiNote } from '$lib/stores/midi'; // Import activeMidiNote
-  import { colorFilters } from '$lib/stores/colorFilters'; // Import colorFilters store
-  import { get } from 'svelte/store';
+  import { midiNoteState, playNote } from '$lib/stores/midi.svelte';
+  import { colorFilters } from '$lib/stores/colorFilters';
 
   // MIDI display offset: converts MIDI note 30-61 to display index 1-32
   const MIDI_DISPLAY_OFFSET = 30;
@@ -29,7 +25,7 @@
   let displayIndex = $derived(midiNoteNumber - MIDI_DISPLAY_OFFSET + 1);
 
   // Reactive variable to determine if this button is currently active
-  let isActive = $derived($activeMidiNote === midiNoteNumber);
+  let isActive = $derived(midiNoteState.active === midiNoteNumber);
 
   // Reactive variable to generate the CSS filter style based on the colorFilters store
   let filterStyle = $derived(`
@@ -40,8 +36,8 @@
   `);
 
   function handleClick() {
-    // Call the centralized playNote function from the midiStore
-    midiStore.playNote(midiNoteNumber);
+    // Call the centralized playNote function
+    playNote(midiNoteNumber);
   }
 </script>
 
@@ -56,7 +52,6 @@
   "
   style="background-color: {color}; {filterStyle}"
   onclick={handleClick}
-  onkeydown={bubble('keydown')}
 >
   {displayIndex}
 </button>

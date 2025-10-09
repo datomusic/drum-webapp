@@ -7,13 +7,13 @@ import { getLatestFirmwareInfo } from '../services/githubReleaseService.js';
  * This should match the version string format (e.g., "v0.9.0").
  * Used as a fallback when GitHub API is unavailable.
  */
-export const FALLBACK_FIRMWARE_VERSION = "v0.9.3";
+export const FALLBACK_FIRMWARE_VERSION = "v0.9.4";
 
 /**
  * The fallback URL to download the firmware (.uf2) file.
  * Used when GitHub API is unavailable.
  */
-export const FALLBACK_FIRMWARE_DOWNLOAD_URL = "https://github.com/datomusic/drum-firmware/releases/download/v0.9.3/drum-0.9.3.uf2";
+export const FALLBACK_FIRMWARE_DOWNLOAD_URL = "https://github.com/datomusic/drum-firmware/releases/download/v0.9.4/drum-0.9.4.uf2";
 
 /**
  * Gets the latest firmware version and download URL.

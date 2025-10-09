@@ -10,7 +10,7 @@
  */
 
 import { writable, derived, get } from 'svelte/store';
-import { midiStore } from './midi';
+import { midiState } from './midi.svelte';
 import { processAudioFile, isAudioFile } from '$lib/services/audioProcessor';
 import { transferSampleViaSds, initializeSdsListener, cleanupSdsListener, type SdsProgress } from '$lib/services/sdsProtocol';
 import { createLogger } from '$lib/utils/logger';
@@ -154,7 +154,7 @@ async function uploadSample(item: UploadQueueItem): Promise<void> {
 
   try {
     // Check MIDI connection
-    const { isConnected } = get(midiStore);
+    const { isConnected } = midiState;
     if (!isConnected) {
       throw new Error('MIDI device not connected');
     }

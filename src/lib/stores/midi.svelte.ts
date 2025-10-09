@@ -96,7 +96,6 @@ function parseFirmwareVersionReply(data: Uint8Array): string | null {
 
         const fwVersion = `${major}.${minor}.${patch}`;
         logger.info(`Identified device firmware: ${fwVersion}`, 'firmware');
-        logger.info(`Latest available firmware: ${getCurrentFirmwareVersion()}`, 'firmware');
         return fwVersion;
     }
 
@@ -121,7 +120,6 @@ function parseFirmwareVersionReply(data: Uint8Array): string | null {
         const fwVersion = commits === 0 ? `${major}.${minor}.${patch}` : `${major}.${minor}.${patch}-dev.${commits}`;
 
         logger.info(`Identified device firmware: ${fwVersion}`, 'firmware');
-        logger.info(`Latest available firmware: ${getCurrentFirmwareVersion()}`, 'firmware');
         return fwVersion;
     }
 

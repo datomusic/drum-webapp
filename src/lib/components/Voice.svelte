@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { midiStore } from '$lib/stores/midi';
+  import { midiState, playNote } from '$lib/stores/midi.svelte';
   import { colorFilters } from '$lib/stores/colorFilters';
   import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
   import { sampleUploadStore, uploadQueue } from '$lib/stores/sampleUpload';
@@ -73,7 +73,7 @@
 
   // Function to handle click event and play the MIDI note
   function handleClick() {
-    midiStore.playNote(midiNoteNumber);
+    playNote(midiNoteNumber);
   }
 
   // Drag and drop event handlers
@@ -119,7 +119,7 @@
     }
 
     // Check MIDI connection
-    if (!$midiStore.isConnected) {
+    if (!midiState.isConnected) {
       uploadStatus = 'error';
       uploadError = 'MIDI not connected';
       logger.error('Cannot upload: MIDI device not connected');

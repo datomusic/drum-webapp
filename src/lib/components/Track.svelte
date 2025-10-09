@@ -1,11 +1,9 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
-
   import { tweened } from 'svelte/motion';
   import { cubicOut } from 'svelte/easing';
   import SampleButton from './SampleButton.svelte';
   import Voice from './Voice.svelte';
-  import { selectedSampleMidiNote } from '$lib/stores/midi'; // Import selectedSampleMidiNote
+  import { midiNoteState } from '$lib/stores/midi.svelte';
 
   interface Props {
     samples: Array<{ color: string; midiNoteNumber: number }>;
@@ -42,11 +40,11 @@
     easing: cubicOut,
   });
 
-  // Reactive statement to update selectedSampleIndex based on selectedSampleMidiNote
-  run(() => {
-    if ($selectedSampleMidiNote !== null) {
+  // Reactive effect to update selectedSampleIndex based on midiNoteState.selectedSample
+  $effect(() => {
+    if (midiNoteState.selectedSample !== null) {
       const incomingNoteIndex = samples.findIndex(
-        sample => sample.midiNoteNumber === $selectedSampleMidiNote
+        sample => sample.midiNoteNumber === midiNoteState.selectedSample
       );
       if (incomingNoteIndex !== -1) {
         selectedSampleIndex = incomingNoteIndex;
@@ -55,7 +53,7 @@
   });
 
   // Reactive effect to update the translation when selectedSampleIndex or containerWidthPx changes
-  run(() => {
+  $effect(() => {
     if (containerWidthPx > 0) {
       // Calculate the X position that would place the center of the selected button
       // at the center of the container.

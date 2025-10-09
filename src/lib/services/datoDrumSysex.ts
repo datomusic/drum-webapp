@@ -1,5 +1,4 @@
-import { get } from 'svelte/store';
-import { midiStore } from '$lib/stores/midi';
+import { midiState } from '$lib/stores/midi.svelte';
 
 const SYSEX_START = 0xF0;
 const SYSEX_END = 0xF7;
@@ -19,7 +18,7 @@ export const TAG_END_FILE_TRANSFER = 0x12;
  * @throws Error if no output is selected or if sending fails.
  */
 export function sendDatoDrumSysEx(tag: number, body: number[]): void {
-    const { selectedOutput } = get(midiStore);
+    const { selectedOutput } = midiState;
     if (!selectedOutput) {
         console.error('No MIDI output selected. Cannot send Dato DRUM SysEx message.');
         throw new Error('No MIDI output selected.');

@@ -2,10 +2,10 @@
 	import { _ } from 'svelte-i18n'; // Only need _ for translation, locale is handled in layout
     import SampleTable from '$lib/components/SampleTable.svelte';
     import DeviceConnection from '$lib/components/DeviceConnection.svelte';
-    import { midiStore } from '$lib/stores/midi';
+    import { midiState } from '$lib/stores/midi.svelte';
 </script>
 
-{#if !$midiStore.isConnected}
+{#if !midiState.isConnected}
     <div class="fixed inset-0 flex items-center justify-center bg-gray-50">
         <DeviceConnection />
     </div>

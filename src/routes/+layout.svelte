@@ -2,7 +2,7 @@
 	import '../app.css';
 	import { _, locale } from 'svelte-i18n';
 	import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
-	import { midiStore } from '$lib/stores/midi';
+	import { midiState, disconnectDevice } from '$lib/stores/midi.svelte';
 
 	let { children } = $props();
 
@@ -87,15 +87,15 @@
 	<footer class="bg-gray-200 p-4 text-center text-gray-600">
 		<div class="flex justify-between items-center max-w-screen-lg mx-auto">
 			<p>&copy; {new Date().getFullYear()} {$_('app_name')}</p>
-			{#if $midiStore.isConnected}
+			{#if midiState.isConnected}
 				<button
 					class="flex items-center gap-2 text-sm hover:text-gray-800 transition-colors"
-					onclick={midiStore.disconnectDevice}
-					title={$_('device_connected_status', { values: { deviceName: $midiStore.selectedOutput?.name || 'Dato DRUM' } }) + ' - ' + $_('device_disconnect_button')}
+					onclick={disconnectDevice}
+					title={$_('device_connected_status', { values: { deviceName: midiState.selectedOutput?.name || 'Dato DRUM' } }) + ' - ' + $_('device_disconnect_button')}
 				>
 					<div class="w-3 h-3 bg-green-500 rounded-full"></div>
 					<span class="hidden sm:inline">
-						{$_('connected')}{#if $midiStore.firmwareVersion} ({$midiStore.firmwareVersion}){/if}
+						{$_('connected')}{#if midiState.firmwareVersion} ({midiState.firmwareVersion}){/if}
 					</span>
 				</button>
 			{/if}

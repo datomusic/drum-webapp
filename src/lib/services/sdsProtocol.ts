@@ -9,8 +9,7 @@
  * - Progress monitoring
  */
 
-import { get } from 'svelte/store';
-import { midiStore } from '$lib/stores/midi';
+import { midiState } from '$lib/stores/midi.svelte';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('SDS');
@@ -92,7 +91,7 @@ function handleMidiMessage(this: MIDIInput, event: MIDIMessageEvent): void {
  * Initialize SDS message listener
  */
 export function initializeSdsListener(): void {
-  const { selectedInput } = get(midiStore);
+  const { selectedInput } = midiState;
 
   if (!selectedInput) {
     logger.warn('No MIDI input selected for SDS listener');
@@ -115,7 +114,7 @@ export function initializeSdsListener(): void {
  * Clean up SDS message listener
  */
 export function cleanupSdsListener(): void {
-  const { selectedInput } = get(midiStore);
+  const { selectedInput } = midiState;
 
   if (selectedInput && messageHandler) {
     selectedInput.removeEventListener('midimessage', messageHandler);
@@ -127,7 +126,7 @@ export function cleanupSdsListener(): void {
  * Send SDS message via MIDI output
  */
 function sendSdsMessage(data: number[]): void {
-  const { selectedOutput } = get(midiStore);
+  const { selectedOutput } = midiState;
 
   if (!selectedOutput) {
     throw new Error('No MIDI output selected');
