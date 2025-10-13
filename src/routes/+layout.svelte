@@ -1,10 +1,10 @@
 <script lang="ts">
 	import '../app.css';
-	import { _, locale } from 'svelte-i18n';
+	import { locale } from 'svelte-i18n';
 	import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
-	import { midiState, disconnectDevice } from '$lib/stores/midi.svelte';
-	import { audioInputState, initialize as initializeAudioInput } from '$lib/stores/audioInput.svelte';
+	import { initialize as initializeAudioInput } from '$lib/stores/audioInput.svelte';
 	import { onMount } from 'svelte';
+	import Footer from '$lib/components/Footer.svelte';
 
 	let { children } = $props();
 
@@ -91,33 +91,7 @@
 		{@render children()}
 	</main>
 
-	<footer class="bg-gray-200 p-4 text-center text-gray-600">
-		<div class="flex justify-between items-center max-w-screen-lg mx-auto">
-			<p>&copy; {new Date().getFullYear()} {$_('app_name')}</p>
-			<div class="flex items-center gap-4">
-				{#if audioInputState.selectedDevice}
-					<div class="flex items-center gap-2 text-sm" title="Audio Input: {audioInputState.selectedDevice.label}">
-						<div class="w-3 h-3 bg-orange-500 rounded-full"></div>
-						<span class="hidden sm:inline text-xs">
-							🎤 {audioInputState.selectedDevice.label || 'Microphone'}
-						</span>
-					</div>
-				{/if}
-				{#if midiState.isConnected}
-					<button
-						class="flex items-center gap-2 text-sm hover:text-gray-800 transition-colors"
-						onclick={disconnectDevice}
-						title={$_('device_connected_status', { values: { deviceName: midiState.selectedOutput?.name || 'Dato DRUM' } }) + ' - ' + $_('device_disconnect_button')}
-					>
-						<div class="w-3 h-3 bg-green-500 rounded-full"></div>
-						<span class="hidden sm:inline">
-							{$_('connected')}{#if midiState.firmwareVersion} ({midiState.firmwareVersion}){/if}
-						</span>
-					</button>
-				{/if}
-			</div>
-		</div>
-	</footer>
+	<Footer />
 
 	{#if $isDraggingOverWindow}
 		<div
