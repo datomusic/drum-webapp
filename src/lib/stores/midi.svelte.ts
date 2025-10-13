@@ -2,7 +2,6 @@
 
 import { getCurrentFirmwareVersion } from '$lib/config/firmware';
 import { createLogger, isMidiRealtimeMessage, isMidiSystemMessage } from '$lib/utils/logger';
-import { requestPermission as requestAudioPermission } from '$lib/stores/audioInput.svelte';
 
 interface MidiState {
     access: MIDIAccess | null;
@@ -302,12 +301,6 @@ function connectDevice(deviceId: string) {
             }
             _setDeviceConnected(output, input || null);
             logger.info('Connected to MIDI device: ' + output.name);
-
-            // Request audio recording permission proactively after device connection
-            // This improves UX by not interrupting the user during recording
-            requestAudioPermission().catch((error) => {
-                logger.warn('Failed to request audio permission: ' + (error instanceof Error ? error.message : String(error)));
-            });
         } else {
             _setDeviceConnectionError('Selected device not found.');
             logger.error('Device not found: ' + deviceId);

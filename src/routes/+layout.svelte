@@ -2,15 +2,30 @@
 	import '../app.css';
 	import { locale } from 'svelte-i18n';
 	import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
-	import { initialize as initializeAudioInput } from '$lib/stores/audioInput.svelte';
+	import { midiState } from '$lib/stores/midi.svelte';
+	import { initialize as initializeAudioInput, requestPermission } from '$lib/stores/audioInput.svelte';
 	import { onMount } from 'svelte';
+	import { createLogger } from '$lib/utils/logger';
 	import Footer from '$lib/components/Footer.svelte';
+
+	const logger = createLogger('Layout');
 
 	let { children } = $props();
 
 	// Initialize audio input store on mount
 	onMount(() => {
 		initializeAudioInput();
+	});
+
+	// Request audio permission when MIDI device connects
+	// This improves UX by avoiding interruption during recording
+	$effect(() => {
+		if (midiState.isConnected) {
+			logger.info('MIDI device connected, requesting audio permission...');
+			requestPermission().catch((error) => {
+				logger.warn('Failed to request audio permission: ' + (error instanceof Error ? error.message : String(error)));
+			});
+		}
 	});
 
 	const locales = [
