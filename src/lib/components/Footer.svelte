@@ -6,7 +6,7 @@
 
 <footer class="bg-gray-200 p-4 text-center text-gray-600">
 	<div class="flex justify-between items-center max-w-screen-lg mx-auto">
-		<p>&copy; {new Date().getFullYear()} {$_('app_name')}</p>
+		<p></p>
 		<div class="flex items-center gap-4">
 			{#if audioInputState.selectedDevice}
 				<div class="flex items-center gap-2 text-sm" title="Audio Input: {audioInputState.selectedDevice.label}">
