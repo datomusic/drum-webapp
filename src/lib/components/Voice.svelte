@@ -368,9 +368,9 @@
       <div class="absolute inset-0 flex items-center justify-center bg-opacity-70 rounded-lg">
         <div class="text-white text-xs font-bold">
           {#if recordingStatus === 'recording'}
-            🎤 {Math.round(recordingProgress)}%
+            {Math.round(recordingProgress)}%
           {:else}
-            ⚙️ {Math.round(recordingProgress)}%
+            {Math.round(recordingProgress)}%
           {/if}
         </div>
       </div>
