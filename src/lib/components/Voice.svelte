@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { midiState, playNote } from '$lib/stores/midi.svelte';
+  import { midiState, midiNoteState, playNote } from '$lib/stores/midi.svelte';
   import { colorFilters } from '$lib/stores/colorFilters';
   import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
   import { sampleUploadStore, uploadQueue } from '$lib/stores/sampleUpload';
@@ -45,6 +45,30 @@
 
   let { color = undefined, imageSrc, midiNoteNumber }: Props = $props();
 
+  // Visual feedback for MIDI note trigger
+  let isNoteActive = $state(false);
+  let blinkTimeoutId: number | undefined;
+
+  // Watch for MIDI note triggers and blink when this note is played
+  // We watch 'active' instead of 'selectedSample' because 'active' cycles to null
+  // on note-off, which allows the effect to re-trigger on repeated notes
+  $effect(() => {
+    if (midiNoteState.active === midiNoteNumber) {
+      // Clear any existing timeout
+      if (blinkTimeoutId !== undefined) {
+        clearTimeout(blinkTimeoutId);
+      }
+
+      // Activate the blink
+      isNoteActive = true;
+
+      // Reset after 50ms for a snappy blink
+      blinkTimeoutId = setTimeout(() => {
+        isNoteActive = false;
+      }, 50) as unknown as number;
+    }
+  });
+
   // Check if this slot is currently being uploaded
   let isUploadingThisSlot = $derived(
     $uploadQueue.some(item =>
@@ -64,7 +88,9 @@
   // Reactive statement to determine the background style
   let backgroundStyle = $derived(
     isDragOver
-      ? '' // When dragging over, let Tailwind class 'bg-blue-100' handle background
+      ? ''
+      : isNoteActive
+      ? 'background-color: #ffffff;' // Bright white blink when note is triggered
       : recordingStatus === 'countdown'
       ? 'background-color: #000000;' // Black background for countdown
       : recordingStatus === 'recording'
