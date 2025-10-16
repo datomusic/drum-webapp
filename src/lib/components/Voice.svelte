@@ -10,15 +10,8 @@
 
   const logger = createLogger('Voice');
 
-  // Onset-trigger config (simple wiring; replace with UI controls later if desired)
-  const USE_ONSET_TRIGGER = true;
-  const ONSET_TRIGGER_OPTIONS = {
-    threshold: 0.1,   // 0..1 linear
-    preRollMs: 1,   // include a short lead-in
-    holdUs: 500,     // minimum microseconds above threshold
-    timeoutMs: 10000, // abort if no trigger within 10s
-    highpassHz: 80    // reduce low-frequency rumble
-  };
+  // Onset-trigger config disabled - using countdown instead
+  const USE_ONSET_TRIGGER = false;
 
   // This component represents the "Voice" settings for a sample slot.
   // It displays an icon indicating its purpose and acts as a drop target for audio files.
@@ -28,9 +21,10 @@
   let uploadError = $state<string | null>(null);
 
   // Recording state
-  let recordingStatus = $state<'idle' | 'requesting-permission' | 'waiting' | 'recording' | 'processing' | 'error'>('idle');
+  let recordingStatus = $state<'idle' | 'requesting-permission' | 'countdown' | 'recording' | 'processing' | 'error'>('idle');
   let recordingProgress = $state<number>(0);
   let recordingError = $state<string | null>(null);
+  let countdownNumber = $state<number>(3);
 
   interface Props {
     /**
@@ -71,8 +65,12 @@
   let backgroundStyle = $derived(
     isDragOver
       ? '' // When dragging over, let Tailwind class 'bg-blue-100' handle background
-      : (recordingStatus === 'waiting' || recordingStatus === 'recording' || recordingStatus === 'processing')
-      ? 'background-color: #fef3c7;' // Yellow tint while arming/recording/processing
+      : recordingStatus === 'countdown'
+      ? 'background-color: #000000;' // Black background for countdown
+      : recordingStatus === 'recording'
+      ? 'background-color: #fb923c;' // Orange while recording
+      : recordingStatus === 'processing'
+      ? 'background-color: #fef3c7;' // Yellow tint while processing
       : recordingStatus === 'error'
       ? 'background-color: #fee2e2;' // Red tint for error
       : uploadStatus === 'success'
@@ -264,21 +262,27 @@
         }
       }
 
+      // Start countdown
+      recordingStatus = 'countdown';
+      logger.info('Starting countdown...');
+
+      // Countdown from 3 to 1
+      for (let i = 3; i >= 1; i--) {
+        countdownNumber = i;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
       // Start recording
       logger.info(`Recording audio for slot ${midiNoteNumber}...`);
 
       const processedAudio = await recordAudio(
         {
-          deviceId: audioInputState.selectedDeviceId || undefined,
-          ...(USE_ONSET_TRIGGER ? ONSET_TRIGGER_OPTIONS : {})
+          deviceId: audioInputState.selectedDeviceId || undefined
         },
         (progress: RecordingProgress) => {
           // Update recording status based on progress
           if (progress.stage === 'requesting') {
             recordingStatus = 'requesting-permission';
-            recordingProgress = 0;
-          } else if (progress.stage === 'waiting') {
-            recordingStatus = 'waiting';
             recordingProgress = 0;
           } else if (progress.stage === 'recording') {
             recordingStatus = 'recording';
@@ -350,13 +354,20 @@
   >
     <img src={imageSrc} alt="Voice" class="w-20 h-20" />
 
+    <!-- Countdown display -->
+    {#if recordingStatus === 'countdown'}
+      <div class="absolute inset-0 flex items-center justify-center bg-black rounded-lg">
+        <div class="text-white text-6xl font-bold">
+          {countdownNumber}
+        </div>
+      </div>
+    {/if}
+
     <!-- Recording progress indicator -->
-    {#if recordingStatus === 'waiting' || recordingStatus === 'recording' || recordingStatus === 'processing'}
-      <div class="absolute inset-0 flex items-center justify-center bg-yellow-500 bg-opacity-70 rounded-lg">
+    {#if recordingStatus === 'recording' || recordingStatus === 'processing'}
+      <div class="absolute inset-0 flex items-center justify-center bg-opacity-70 rounded-lg">
         <div class="text-white text-xs font-bold">
-          {#if recordingStatus === 'waiting'}
-            🎧 Waiting...
-          {:else if recordingStatus === 'recording'}
+          {#if recordingStatus === 'recording'}
             🎤 {Math.round(recordingProgress)}%
           {:else}
             ⚙️ {Math.round(recordingProgress)}%
