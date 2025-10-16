@@ -47,25 +47,19 @@
 
   // Visual feedback for MIDI note trigger
   let isNoteActive = $state(false);
-  let blinkTimeoutId: number | undefined;
 
   // Watch for MIDI note triggers and blink when this note is played
   // We watch 'active' instead of 'selectedSample' because 'active' cycles to null
   // on note-off, which allows the effect to re-trigger on repeated notes
   $effect(() => {
     if (midiNoteState.active === midiNoteNumber) {
-      // Clear any existing timeout
-      if (blinkTimeoutId !== undefined) {
-        clearTimeout(blinkTimeoutId);
-      }
-
-      // Activate the blink
+      // Activate the blink instantly
       isNoteActive = true;
 
-      // Reset after 50ms for a snappy blink
-      blinkTimeoutId = setTimeout(() => {
+      // Immediately start transitioning back (browser will render white first, then CSS transition)
+      requestAnimationFrame(() => {
         isNoteActive = false;
-      }, 50) as unknown as number;
+      });
     }
   });
 
@@ -115,6 +109,13 @@
       brightness(${$colorFilters.brightness})
       contrast(${$colorFilters.contrast});
   `);
+
+  // Transition style: no transition when going TO white, 50ms transition when going FROM white
+  let transitionStyle = $derived(
+    isNoteActive
+      ? 'transition: none;' // Instant change to white
+      : 'transition: background-color 150ms ease-out;' // Smooth fade back
+  );
 
   // Function to handle click event and play the MIDI note
   function handleClick() {
@@ -363,7 +364,6 @@
       flex items-center justify-center
       shadow-sm
       hover:shadow-md
-      transition-all duration-150 ease-in-out
       cursor-pointer
       border-2 border-transparent
       relative
@@ -372,7 +372,7 @@
     class:border-blue-500={isDragOver}
     class:bg-blue-100={isDragOver}
     class:z-[1000]={$isDraggingOverWindow}
-    style="{backgroundStyle} {filterStyle}"
+    style="{backgroundStyle} {filterStyle} {transitionStyle}"
     onclick={handleClick}
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
