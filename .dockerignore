@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+build/
+.svelte-kit/
+
+# Git
+.git/
+.github/
+
+# IDE
+.vscode/
+.idea/
+
+# Documentation and project files
+*.md
+!README.md
+.claude/
+context/
+tmp/
+
+# Testing
+*.test.ts
+*.spec.ts
+
+# Misc
+.env
+.env.*
+*.log
+.DS_Store
+drum_sample_uploader.html
+drumtool
+drumtool.js
+provisioning-tool.ts
+graphic-mockup.png
+translation-candidates.md
+static/firmware/
