@@ -296,7 +296,7 @@
       // Countdown from 3 to 1
       for (let i = 3; i >= 1; i--) {
         countdownNumber = i;
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       // Start recording
