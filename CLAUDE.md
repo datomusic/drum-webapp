@@ -18,11 +18,11 @@ Dato DRUM Web App is a companion web application for the Dato DRUM hardware - a 
 ## Technology Stack
 
 - **Framework**: SvelteKit with Svelte 5
-- **Styling**: Tailwind CSS v4 
+- **Styling**: Tailwind CSS v4
 - **TypeScript**: Full TypeScript support with strict mode
 - **Internationalization**: `svelte-i18n`
 - **Build**: Vite with static adapter
-- **Deployment**: Static site with base path `/playground/drum-webapp`
+- **Deployment**: Docker container on VPS at drum.dato.mu, proxied via Apache
 
 ## Development Commands
 
@@ -40,6 +40,11 @@ npm run preview
 # Type checking
 npm run check
 npm run check:watch  # Watch mode
+
+# Docker deployment
+docker build -t drum-webapp:latest .         # Build Docker image
+docker run -p 3001:3001 drum-webapp:latest   # Test locally
+# See deployment.md for full VPS deployment instructions
 ```
 
 ## Code Architecture
@@ -97,7 +102,7 @@ npm run check:watch  # Watch mode
 
 **Color System** (`src/lib/utils/colors.ts`): LED color simulation for UI representation
 
-**Base Path**: Configured for `/playground/drum-webapp` deployment path
+**Deployment**: Docker-based deployment at drum.dato.mu (no base path required)
 
 ### Internationalization
 

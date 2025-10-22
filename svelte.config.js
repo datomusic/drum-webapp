@@ -15,10 +15,8 @@ const config = {
 			fallback: undefined,
 			precompress: false,
 			strict: true
-		}),
-		paths: {
-			base: process.env.NODE_ENV === 'production' ? '/drum-webapp' : ''
-		}
+		})
+		// No base path needed - serving from root domain drum.dato.mu
 	}
 };
 
