@@ -1,7 +1,13 @@
 <script lang="ts">
-	import { _ } from 'svelte-i18n';
+	import { _, locale } from 'svelte-i18n';
 	import { midiState, disconnectDevice } from '$lib/stores/midi.svelte';
 	import { audioInputState, selectDevice } from '$lib/stores/audioInput.svelte';
+
+	const locales = [
+		{ code: 'en', name: 'English' },
+		{ code: 'de', name: 'Deutsch' },
+		{ code: 'nl', name: 'Nederlands' }
+	];
 
 	let showAudioDropdown = $state(false);
 
@@ -26,7 +32,21 @@
 
 <footer class="bg-gray-200 p-4 text-center text-gray-600">
 	<div class="flex justify-between items-center max-w-screen-lg mx-auto">
-		<p></p>
+		<div class="flex items-center gap-2">
+			<select
+				id="language-select"
+				bind:value={$locale}
+				class="
+					text-sm text-gray-600 hover:text-gray-800 transition-colors cursor-pointer
+					border-none bg-transparent
+					focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-200
+				"
+			>
+				{#each locales as lang }
+					<option value={lang.code}>{lang.name}</option>
+				{/each}
+			</select>
+		</div>
 		<div class="flex items-center gap-4">
 			{#if audioInputState.selectedDevice}
 				<div class="relative audio-input-dropdown">
@@ -80,3 +100,13 @@
 		</div>
 	</div>
 </footer>
+
+<style>
+	#language-select {
+		text-transform: uppercase;
+	}
+	/* Make sure the elements in the dropdown are not uppercased */
+	#language-select:active {
+		text-transform: none;
+	}
+</style>
