@@ -122,3 +122,4 @@ https://svelte.dev/docs/kit/llms.txt
 Use Playwright only when requested
 
 When removing git-tracked files, use `git rm`. For untracked files, use `trash`. Don't use `rm`
+- don't use emoji's unless instructed

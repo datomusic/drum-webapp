@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { midiState, playNote } from '$lib/stores/midi.svelte';
+  import { midiState, midiNoteState, playNote } from '$lib/stores/midi.svelte';
   import { colorFilters } from '$lib/stores/colorFilters';
   import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
   import { sampleUploadStore, uploadQueue } from '$lib/stores/sampleUpload';
@@ -10,15 +10,8 @@
 
   const logger = createLogger('Voice');
 
-  // Onset-trigger config (simple wiring; replace with UI controls later if desired)
-  const USE_ONSET_TRIGGER = true;
-  const ONSET_TRIGGER_OPTIONS = {
-    threshold: 0.1,   // 0..1 linear
-    preRollMs: 1,   // include a short lead-in
-    holdUs: 500,     // minimum microseconds above threshold
-    timeoutMs: 10000, // abort if no trigger within 10s
-    highpassHz: 80    // reduce low-frequency rumble
-  };
+  // Onset-trigger config disabled - using countdown instead
+  const USE_ONSET_TRIGGER = false;
 
   // This component represents the "Voice" settings for a sample slot.
   // It displays an icon indicating its purpose and acts as a drop target for audio files.
@@ -28,9 +21,10 @@
   let uploadError = $state<string | null>(null);
 
   // Recording state
-  let recordingStatus = $state<'idle' | 'requesting-permission' | 'waiting' | 'recording' | 'processing' | 'error'>('idle');
+  let recordingStatus = $state<'idle' | 'requesting-permission' | 'countdown' | 'recording' | 'processing' | 'error'>('idle');
   let recordingProgress = $state<number>(0);
   let recordingError = $state<string | null>(null);
+  let countdownNumber = $state<number>(3);
 
   interface Props {
     /**
@@ -51,6 +45,24 @@
 
   let { color = undefined, imageSrc, midiNoteNumber }: Props = $props();
 
+  // Visual feedback for MIDI note trigger
+  let isNoteActive = $state(false);
+
+  // Watch for MIDI note triggers and blink when this note is played
+  // We watch 'active' instead of 'selectedSample' because 'active' cycles to null
+  // on note-off, which allows the effect to re-trigger on repeated notes
+  $effect(() => {
+    if (midiNoteState.active === midiNoteNumber) {
+      // Activate the blink instantly
+      isNoteActive = true;
+
+      // Immediately start transitioning back (browser will render white first, then CSS transition)
+      requestAnimationFrame(() => {
+        isNoteActive = false;
+      });
+    }
+  });
+
   // Check if this slot is currently being uploaded
   let isUploadingThisSlot = $derived(
     $uploadQueue.some(item =>
@@ -70,9 +82,15 @@
   // Reactive statement to determine the background style
   let backgroundStyle = $derived(
     isDragOver
-      ? '' // When dragging over, let Tailwind class 'bg-blue-100' handle background
-      : (recordingStatus === 'waiting' || recordingStatus === 'recording' || recordingStatus === 'processing')
-      ? 'background-color: #fef3c7;' // Yellow tint while arming/recording/processing
+      ? ''
+      : isNoteActive
+      ? 'background-color: #ffffff;' // Bright white blink when note is triggered
+      : recordingStatus === 'countdown'
+      ? 'background-color: #000000;' // Black background for countdown
+      : recordingStatus === 'recording'
+      ? 'background-color: #fb923c;' // Orange while recording
+      : recordingStatus === 'processing'
+      ? 'background-color: #fef3c7;' // Yellow tint while processing
       : recordingStatus === 'error'
       ? 'background-color: #fee2e2;' // Red tint for error
       : uploadStatus === 'success'
@@ -91,6 +109,13 @@
       brightness(${$colorFilters.brightness})
       contrast(${$colorFilters.contrast});
   `);
+
+  // Transition style: no transition when going TO white, 50ms transition when going FROM white
+  let transitionStyle = $derived(
+    isNoteActive
+      ? 'transition: none;' // Instant change to white
+      : 'transition: background-color 150ms ease-out;' // Smooth fade back
+  );
 
   // Function to handle click event and play the MIDI note
   function handleClick() {
@@ -264,21 +289,27 @@
         }
       }
 
+      // Start countdown
+      recordingStatus = 'countdown';
+      logger.info('Starting countdown...');
+
+      // Countdown from 3 to 1
+      for (let i = 3; i >= 1; i--) {
+        countdownNumber = i;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
       // Start recording
       logger.info(`Recording audio for slot ${midiNoteNumber}...`);
 
       const processedAudio = await recordAudio(
         {
-          deviceId: audioInputState.selectedDeviceId || undefined,
-          ...(USE_ONSET_TRIGGER ? ONSET_TRIGGER_OPTIONS : {})
+          deviceId: audioInputState.selectedDeviceId || undefined
         },
         (progress: RecordingProgress) => {
           // Update recording status based on progress
           if (progress.stage === 'requesting') {
             recordingStatus = 'requesting-permission';
-            recordingProgress = 0;
-          } else if (progress.stage === 'waiting') {
-            recordingStatus = 'waiting';
             recordingProgress = 0;
           } else if (progress.stage === 'recording') {
             recordingStatus = 'recording';
@@ -333,7 +364,6 @@
       flex items-center justify-center
       shadow-sm
       hover:shadow-md
-      transition-all duration-150 ease-in-out
       cursor-pointer
       border-2 border-transparent
       relative
@@ -342,7 +372,7 @@
     class:border-blue-500={isDragOver}
     class:bg-blue-100={isDragOver}
     class:z-[1000]={$isDraggingOverWindow}
-    style="{backgroundStyle} {filterStyle}"
+    style="{backgroundStyle} {filterStyle} {transitionStyle}"
     onclick={handleClick}
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
@@ -350,16 +380,23 @@
   >
     <img src={imageSrc} alt="Voice" class="w-20 h-20" />
 
+    <!-- Countdown display -->
+    {#if recordingStatus === 'countdown'}
+      <div class="absolute inset-0 flex items-center justify-center bg-black rounded-lg">
+        <div class="text-white text-6xl font-bold">
+          {countdownNumber}
+        </div>
+      </div>
+    {/if}
+
     <!-- Recording progress indicator -->
-    {#if recordingStatus === 'waiting' || recordingStatus === 'recording' || recordingStatus === 'processing'}
-      <div class="absolute inset-0 flex items-center justify-center bg-yellow-500 bg-opacity-70 rounded-lg">
+    {#if recordingStatus === 'recording' || recordingStatus === 'processing'}
+      <div class="absolute inset-0 flex items-center justify-center bg-opacity-70 rounded-lg">
         <div class="text-white text-xs font-bold">
-          {#if recordingStatus === 'waiting'}
-            🎧 Waiting...
-          {:else if recordingStatus === 'recording'}
-            🎤 {Math.round(recordingProgress)}%
+          {#if recordingStatus === 'recording'}
+            {Math.round(recordingProgress)}%
           {:else}
-            ⚙️ {Math.round(recordingProgress)}%
+            {Math.round(recordingProgress)}%
           {/if}
         </div>
       </div>
