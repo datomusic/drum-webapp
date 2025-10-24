@@ -536,17 +536,13 @@
 
   <div class="flex gap-1">
     <button
-      class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+      class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
       aria-label="Record"
       onclick={handleRecordClick}
       disabled={recordingStatus !== 'idle' || uploadStatus !== 'idle'}
       title={recordingStatus !== 'idle' ? 'Recording...' : 'Record 1 second of audio'}
     >
-      {#if recordingStatus === 'recording'}
-        ⏺
-      {:else}
-        ●
-      {/if}
+      <img src="icon_record.svg">
     </button>
     <button
       class="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center text-xs cursor-pointer"
@@ -554,7 +550,7 @@
       onclick={handleBrowseClick}
       title="Browse for audio file"
     >
-      &hellip;
+      <img src="icon_browse.svg">
     </button>
     <button
       class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
@@ -563,7 +559,7 @@
       disabled={recordingStatus !== 'idle' || uploadStatus !== 'idle'}
       title="Reset to factory sound"
     >
-      ↻
+      <img src="icon_reset.svg">
     </button>
   </div>
 
