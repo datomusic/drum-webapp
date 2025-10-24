@@ -403,7 +403,7 @@
       // Countdown from 3 to 1
       for (let i = 3; i >= 1; i--) {
         countdownNumber = i;
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 667));
       }
 
       // Start recording
@@ -499,7 +499,7 @@
     <!-- Recording progress indicator -->
     {#if recordingStatus === 'recording' || recordingStatus === 'processing'}
       <div class="absolute inset-0 flex items-center justify-center bg-opacity-70 rounded-lg">
-        <div class="text-white text-xs font-bold">
+        <div class="text-white text-s font-bold">
           {#if recordingStatus === 'recording'}
             {Math.round(recordingProgress)}%
           {:else}
@@ -554,7 +554,7 @@
       onclick={handleBrowseClick}
       title="Browse for audio file"
     >
-      ...
+      &hellip;
     </button>
     <button
       class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
