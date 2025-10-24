@@ -553,7 +553,7 @@
       <img src="icon_browse.svg">
     </button>
     <button
-      class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+      class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
       aria-label="Reset"
       onclick={handleResetClick}
       disabled={recordingStatus !== 'idle' || uploadStatus !== 'idle'}

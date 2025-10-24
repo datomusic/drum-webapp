@@ -69,7 +69,7 @@
 >
   <div
     class="button-strip absolute flex bg-white"
-    style="transform: translateX({$stripTranslateX}px); top: 0px; will-change: transform; white-space: nowrap;"
+    style="transform: translateX({$stripTranslateX}px); top: 0px; will-change: transform; white-space: nowrap; top: -12px"
   >
     {#each samples as sample, i (sample.midiNoteNumber)}
       <div
