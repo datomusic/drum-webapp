@@ -466,7 +466,6 @@
   <button
     class="
       voice-component
-      w-24 h-24
       rounded-lg
       flex items-center justify-center
       shadow-sm
@@ -479,7 +478,7 @@
     class:border-blue-500={isDragOver}
     class:bg-blue-100={isDragOver}
     class:z-[1000]={$isDraggingOverWindow}
-    style="{backgroundStyle} {filterStyle} {transitionStyle}"
+    style="{backgroundStyle} {filterStyle} {transitionStyle} width:100px; height: 100px;"
     onclick={handleClick}
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}

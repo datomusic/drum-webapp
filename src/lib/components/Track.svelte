@@ -64,7 +64,8 @@
 </script>
 
 <div
-  class="track-container relative flex items-center w-full h-40"
+  class="flex-1 grow-1 relative items-center w-full"
+  style="min-height: 40px"
   bind:clientWidth={containerWidthPx}
 >
   <div

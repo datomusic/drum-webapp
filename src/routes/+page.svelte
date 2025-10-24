@@ -10,7 +10,5 @@
         <DeviceConnection />
     </div>
 {:else}
-    <div class="space-y-8">
-        <SampleTable />
-    </div>
+    <SampleTable />
 {/if}
