@@ -536,6 +536,7 @@
   <div class="flex gap-1">
     <button
       class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
+      style="display: none"
       aria-label="Record"
       onclick={handleRecordClick}
       disabled={recordingStatus !== 'idle' || uploadStatus !== 'idle'}
