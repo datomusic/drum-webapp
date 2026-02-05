@@ -1,13 +1,16 @@
 <script lang="ts">
-	import '../app.css';
-	import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
-	import { midiState } from '$lib/stores/midi.svelte';
-	import { initialize as initializeAudioInput, requestPermission } from '$lib/stores/audioInput.svelte';
-	import { onMount } from 'svelte';
-	import { createLogger } from '$lib/utils/logger';
-	import Footer from '$lib/components/Footer.svelte';
+	import "../app.css";
+	import { isDraggingOverWindow } from "$lib/stores/dragDropStore";
+	import { midiState } from "$lib/stores/midi.svelte";
+	import {
+		initialize as initializeAudioInput,
+		requestPermission,
+	} from "$lib/stores/audioInput.svelte";
+	import { onMount } from "svelte";
+	import { createLogger } from "$lib/utils/logger";
+	import Footer from "$lib/components/Footer.svelte";
 
-	const logger = createLogger('Layout');
+	const logger = createLogger("Layout");
 
 	let { children } = $props();
 
@@ -20,9 +23,12 @@
 	// This improves UX by avoiding interruption during recording
 	$effect(() => {
 		if (midiState.isConnected) {
-			logger.info('MIDI device connected, requesting audio permission...');
+			logger.info("MIDI device connected, requesting audio permission...");
 			requestPermission().catch((error) => {
-				logger.warn('Failed to request audio permission: ' + (error instanceof Error ? error.message : String(error)));
+				logger.warn(
+					"Failed to request audio permission: " +
+						(error instanceof Error ? error.message : String(error)),
+				);
 			});
 		}
 	});
@@ -34,11 +40,11 @@
 		dragEnterCounter++;
 		if (dragEnterCounter === 1) {
 			// Check if items being dragged are files
-			if (event.dataTransfer?.types.includes('Files')) {
+			if (event.dataTransfer?.types.includes("Files")) {
 				isDraggingOverWindow.set(true);
 			} else {
 				// If not files, decrement counter as we won't activate the overlay
-				dragEnterCounter--; 
+				dragEnterCounter--;
 			}
 		}
 	}
@@ -46,7 +52,7 @@
 	function handleWindowDragOver(event: DragEvent) {
 		event.preventDefault(); // Necessary to allow dropping and to keep dragover firing
 		if (event.dataTransfer) {
-			event.dataTransfer.dropEffect = 'copy';
+			event.dataTransfer.dropEffect = "copy";
 		}
 	}
 
@@ -75,9 +81,7 @@
 >
 	<header class="bg-white text-gray-800 p-4 text-center">
 		<nav class="flex justify-center items-center max-w-screen-lg mx-auto">
-			<div class="flex items-center gap-2">
-				<img src="dato_drum_logo.svg" alt="Dato DRUM Logo" class="h-10 sm:h-10" />
-			</div>
+			<div class="flex items-center gap-2"></div>
 		</nav>
 	</header>
 
@@ -88,10 +92,7 @@
 	<Footer />
 
 	{#if $isDraggingOverWindow}
-		<div
-			class="fixed inset-0 bg-black opacity-50 z-[999]"
-			aria-hidden="true"
-		>
+		<div class="fixed inset-0 bg-black opacity-50 z-[999]" aria-hidden="true">
 			<!-- This overlay covers the page -->
 		</div>
 	{/if}
