@@ -1,49 +1,56 @@
 <script lang="ts">
-  import { midiState, midiNoteState, playNote } from '$lib/stores/midi.svelte';
-  import { colorFilters } from '$lib/stores/colorFilters';
-  import { isDraggingOverWindow } from '$lib/stores/dragDropStore';
-  import { sampleUploadStore, uploadQueue } from '$lib/stores/sampleUpload';
-  import { isAudioFile } from '$lib/services/audioProcessor';
-  import { recordAudio, isRecordingSupported, type RecordingProgress } from '$lib/services/audioRecorder';
-  import { audioInputState, requestPermission } from '$lib/stores/audioInput.svelte';
-  import { createLogger } from '$lib/utils/logger';
+  import { midiState, midiNoteState, playNote } from "$lib/stores/midi.svelte";
+  import { colorFilters } from "$lib/stores/colorFilters";
+  import { isDraggingOverWindow } from "$lib/stores/dragDropStore";
+  import { sampleUploadStore, uploadQueue } from "$lib/stores/sampleUpload";
+  import { isAudioFile } from "$lib/services/audioProcessor";
+  import {
+    recordAudio,
+    isRecordingSupported,
+    type RecordingProgress,
+  } from "$lib/services/audioRecorder";
+  import {
+    audioInputState,
+    requestPermission,
+  } from "$lib/stores/audioInput.svelte";
+  import { createLogger } from "$lib/utils/logger";
 
-  const logger = createLogger('Voice');
+  const logger = createLogger("Voice");
 
   // Factory sample filename mapping
   const FACTORY_SAMPLES: Record<number, string> = {
-    30: '30_kick_disco.wav',
-    31: '31_kick_pattern.wav',
-    32: '32_kick_big.wav',
-    33: '33_kick_cr78.wav',
-    34: '34_kick_808_long.wav',
-    35: '35_kick_gabber.wav',
-    36: '36_kick_808.wav',
-    37: '37_kick_deep.wav',
-    38: '38_snare_cr78.wav',
-    39: '39_snare_808.wav',
-    40: '40_snare_disco.wav',
-    41: '41_snare_straw.wav',
-    42: '42_snare_garage.wav',
-    43: '43_snare_heimzap.wav',
-    44: '44_snare_machine.wav',
-    45: '45_snare_backbone.wav',
-    46: '46_var_clap.wav',
-    47: '47_var_pop.wav',
-    48: '48_var_wood.wav',
-    49: '49_var_snap.wav',
-    50: '50_var_sepp.wav',
-    51: '51_var_pow.wav',
-    52: '52_var_ah.wav',
-    53: '53_var_rim.wav',
-    54: '54_hat_cr78.wav',
-    55: '55_hat_808.wav',
-    56: '56_hat_maraca.wav',
-    57: '57_hat_909_open.wav',
-    58: '58_hat_shaker.wav',
-    59: '59_hat_electro.wav',
-    60: '60_hat_second.wav',
-    61: '61_hat_backbone.wav'
+    30: "30_kick_disco.wav",
+    31: "31_kick_pattern.wav",
+    32: "32_kick_big.wav",
+    33: "33_kick_cr78.wav",
+    34: "34_kick_808_long.wav",
+    35: "35_kick_gabber.wav",
+    36: "36_kick_808.wav",
+    37: "37_kick_deep.wav",
+    38: "38_snare_cr78.wav",
+    39: "39_snare_808.wav",
+    40: "40_snare_disco.wav",
+    41: "41_snare_straw.wav",
+    42: "42_snare_garage.wav",
+    43: "43_snare_heimzap.wav",
+    44: "44_snare_machine.wav",
+    45: "45_snare_backbone.wav",
+    46: "46_var_clap.wav",
+    47: "47_var_pop.wav",
+    48: "48_var_wood.wav",
+    49: "49_var_snap.wav",
+    50: "50_var_sepp.wav",
+    51: "51_var_pow.wav",
+    52: "52_var_ah.wav",
+    53: "53_var_rim.wav",
+    54: "54_hat_cr78.wav",
+    55: "55_hat_808.wav",
+    56: "56_hat_maraca.wav",
+    57: "57_hat_909_open.wav",
+    58: "58_hat_shaker.wav",
+    59: "59_hat_electro.wav",
+    60: "60_hat_second.wav",
+    61: "61_hat_backbone.wav",
   };
 
   // Onset-trigger config disabled - using countdown instead
@@ -53,11 +60,18 @@
   // It displays an icon indicating its purpose and acts as a drop target for audio files.
 
   let isDragOver = $state(false);
-  let uploadStatus = $state<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  let uploadStatus = $state<"idle" | "uploading" | "success" | "error">("idle");
   let uploadError = $state<string | null>(null);
 
   // Recording state
-  let recordingStatus = $state<'idle' | 'requesting-permission' | 'countdown' | 'recording' | 'processing' | 'error'>('idle');
+  let recordingStatus = $state<
+    | "idle"
+    | "requesting-permission"
+    | "countdown"
+    | "recording"
+    | "processing"
+    | "error"
+  >("idle");
   let recordingProgress = $state<number>(0);
   let recordingError = $state<string | null>(null);
   let countdownNumber = $state<number>(3);
@@ -101,41 +115,45 @@
 
   // Check if this slot is currently being uploaded
   let isUploadingThisSlot = $derived(
-    $uploadQueue.some(item =>
-      item.targetSlot === midiNoteNumber &&
-      (item.status === 'processing' || item.status === 'uploading')
-    )
+    $uploadQueue.some(
+      (item) =>
+        item.targetSlot === midiNoteNumber &&
+        (item.status === "processing" || item.status === "uploading"),
+    ),
   );
 
   // Get upload progress for this slot
   let uploadProgress = $derived(
-    $uploadQueue.find(item =>
-      item.targetSlot === midiNoteNumber &&
-      (item.status === 'processing' || item.status === 'uploading')
-    )?.progress || 0
+    $uploadQueue.find(
+      (item) =>
+        item.targetSlot === midiNoteNumber &&
+        (item.status === "processing" || item.status === "uploading"),
+    )?.progress || 0,
   );
 
   // Reactive statement to determine the background style
   let backgroundStyle = $derived(
     isDragOver
-      ? ''
+      ? ""
       : isNoteActive
-      ? 'background-color: #ffffff;' // Bright white blink when note is triggered
-      : recordingStatus === 'countdown'
-      ? 'background-color: #000000;' // Black background for countdown
-      : recordingStatus === 'recording'
-      ? 'background-color: #fb923c;' // Orange while recording
-      : recordingStatus === 'processing'
-      ? 'background-color: #fef3c7;' // Yellow tint while processing
-      : recordingStatus === 'error'
-      ? 'background-color: #fee2e2;' // Red tint for error
-      : uploadStatus === 'success'
-      ? 'background-color: #d1fae5;' // Green tint for success
-      : uploadStatus === 'error'
-      ? 'background-color: #fee2e2;' // Red tint for error
-      : isUploadingThisSlot
-      ? 'background-color: #dbeafe;' // Blue tint while uploading
-      : (color ? `background-color: ${color};` : 'background-color: #e5e7eb;')
+        ? "background-color: #ffffff;" // Bright white blink when note is triggered
+        : recordingStatus === "countdown"
+          ? "background-color: #000000;" // Black background for countdown
+          : recordingStatus === "recording"
+            ? "background-color: #fb923c;" // Orange while recording
+            : recordingStatus === "processing"
+              ? "background-color: #fef3c7;" // Yellow tint while processing
+              : recordingStatus === "error"
+                ? "background-color: #fee2e2;" // Red tint for error
+                : uploadStatus === "success"
+                  ? "background-color: #d1fae5;" // Green tint for success
+                  : uploadStatus === "error"
+                    ? "background-color: #fee2e2;" // Red tint for error
+                    : isUploadingThisSlot
+                      ? "background-color: #dbeafe;" // Blue tint while uploading
+                      : color
+                        ? `background-color: ${color};`
+                        : "background-color: #e5e7eb;",
   );
 
   // Reactive variable to generate the CSS filter style based on the colorFilters store
@@ -149,8 +167,8 @@
   // Transition style: no transition when going TO white, 50ms transition when going FROM white
   let transitionStyle = $derived(
     isNoteActive
-      ? 'transition: none;' // Instant change to white
-      : 'transition: background-color 150ms ease-out;' // Smooth fade back
+      ? "transition: none;" // Instant change to white
+      : "transition: background-color 150ms ease-out;", // Smooth fade back
   );
 
   // Function to handle click event and play the MIDI note
@@ -162,7 +180,7 @@
   function handleDragOver(event: DragEvent) {
     event.preventDefault(); // Necessary to allow dropping
     if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'copy'; // Show a copy icon
+      event.dataTransfer.dropEffect = "copy"; // Show a copy icon
     }
     isDragOver = true;
   }
@@ -175,7 +193,7 @@
   async function handleDrop(event: DragEvent) {
     event.preventDefault();
     isDragOver = false;
-    uploadStatus = 'idle';
+    uploadStatus = "idle";
     uploadError = null;
 
     const files = event.dataTransfer?.files;
@@ -188,13 +206,13 @@
 
     // Validate audio file
     if (!isAudioFile(file)) {
-      uploadStatus = 'error';
-      uploadError = 'Not an audio file';
+      uploadStatus = "error";
+      uploadError = "Not an audio file";
       logger.warn(`Rejected non-audio file: ${file.name}`);
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        uploadStatus = 'idle';
+        uploadStatus = "idle";
         uploadError = null;
       }, 3000);
       return;
@@ -202,41 +220,42 @@
 
     // Check MIDI connection
     if (!midiState.isConnected) {
-      uploadStatus = 'error';
-      uploadError = 'MIDI not connected';
-      logger.error('Cannot upload: MIDI device not connected');
+      uploadStatus = "error";
+      uploadError = "MIDI not connected";
+      logger.error("Cannot upload: MIDI device not connected");
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        uploadStatus = 'idle';
+        uploadStatus = "idle";
         uploadError = null;
       }, 3000);
       return;
     }
 
     try {
-      uploadStatus = 'uploading';
+      uploadStatus = "uploading";
       logger.info(`Uploading ${file.name} to slot ${midiNoteNumber}`);
 
       // Use quick upload (add to queue and start immediately)
       await sampleUploadStore.quickUpload(file, midiNoteNumber);
 
-      uploadStatus = 'success';
-      logger.info(`Successfully uploaded ${file.name} to slot ${midiNoteNumber}`);
+      uploadStatus = "success";
+      logger.info(
+        `Successfully uploaded ${file.name} to slot ${midiNoteNumber}`,
+      );
 
       // Reset success indicator after 2 seconds
       setTimeout(() => {
-        uploadStatus = 'idle';
+        uploadStatus = "idle";
       }, 2000);
-
     } catch (error) {
-      uploadStatus = 'error';
-      uploadError = error instanceof Error ? error.message : 'Upload failed';
+      uploadStatus = "error";
+      uploadError = error instanceof Error ? error.message : "Upload failed";
       logger.error(`Upload failed: ${uploadError}`);
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        uploadStatus = 'idle';
+        uploadStatus = "idle";
         uploadError = null;
       }, 3000);
     }
@@ -263,24 +282,24 @@
 
     await handleDrop({
       preventDefault: () => {},
-      dataTransfer
+      dataTransfer,
     } as DragEvent);
 
     // Reset input
-    input.value = '';
+    input.value = "";
   }
 
   // Reset to factory sample
   async function handleResetClick() {
     // Check MIDI connection
     if (!midiState.isConnected) {
-      uploadStatus = 'error';
-      uploadError = 'MIDI not connected';
-      logger.error('Cannot reset: MIDI device not connected');
+      uploadStatus = "error";
+      uploadError = "MIDI not connected";
+      logger.error("Cannot reset: MIDI device not connected");
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        uploadStatus = 'idle';
+        uploadStatus = "idle";
         uploadError = null;
       }, 3000);
       return;
@@ -289,53 +308,60 @@
     // Check if we have a factory sample for this note
     const factorySampleFilename = FACTORY_SAMPLES[midiNoteNumber];
     if (!factorySampleFilename) {
-      uploadStatus = 'error';
-      uploadError = 'No factory sample';
+      uploadStatus = "error";
+      uploadError = "No factory sample";
       logger.error(`No factory sample defined for MIDI note ${midiNoteNumber}`);
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        uploadStatus = 'idle';
+        uploadStatus = "idle";
         uploadError = null;
       }, 3000);
       return;
     }
 
     try {
-      uploadStatus = 'uploading';
+      uploadStatus = "uploading";
       logger.info(`Loading factory sample for slot ${midiNoteNumber}`);
 
       // Fetch factory sample
       const response = await fetch(`/factory_kit/${factorySampleFilename}`);
       if (!response.ok) {
-        throw new Error(`Failed to load factory sample: ${response.statusText}`);
+        throw new Error(
+          `Failed to load factory sample: ${response.statusText}`,
+        );
       }
 
       // Create File object from response
       const blob = await response.blob();
-      const file = new File([blob], factorySampleFilename, { type: 'audio/wav' });
+      const file = new File([blob], factorySampleFilename, {
+        type: "audio/wav",
+      });
 
-      logger.info(`Uploading factory sample ${factorySampleFilename} to slot ${midiNoteNumber}`);
+      logger.info(
+        `Uploading factory sample ${factorySampleFilename} to slot ${midiNoteNumber}`,
+      );
 
       // Upload via existing upload system
       await sampleUploadStore.quickUpload(file, midiNoteNumber);
 
-      uploadStatus = 'success';
-      logger.info(`Successfully reset slot ${midiNoteNumber} to factory sample`);
+      uploadStatus = "success";
+      logger.info(
+        `Successfully reset slot ${midiNoteNumber} to factory sample`,
+      );
 
       // Reset success indicator after 2 seconds
       setTimeout(() => {
-        uploadStatus = 'idle';
+        uploadStatus = "idle";
       }, 2000);
-
     } catch (error) {
-      uploadStatus = 'error';
-      uploadError = error instanceof Error ? error.message : 'Reset failed';
+      uploadStatus = "error";
+      uploadError = error instanceof Error ? error.message : "Reset failed";
       logger.error(`Factory reset failed: ${uploadError}`);
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        uploadStatus = 'idle';
+        uploadStatus = "idle";
         uploadError = null;
       }, 3000);
     }
@@ -345,13 +371,13 @@
   async function handleRecordClick() {
     // Check if recording is supported
     if (!isRecordingSupported()) {
-      recordingStatus = 'error';
-      recordingError = 'Recording not supported in this browser';
-      logger.error('Recording not supported');
+      recordingStatus = "error";
+      recordingError = "Recording not supported in this browser";
+      logger.error("Recording not supported");
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        recordingStatus = 'idle';
+        recordingStatus = "idle";
         recordingError = null;
       }, 3000);
       return;
@@ -359,37 +385,40 @@
 
     // Check MIDI connection
     if (!midiState.isConnected) {
-      recordingStatus = 'error';
-      recordingError = 'MIDI not connected';
-      logger.error('Cannot record: MIDI device not connected');
+      recordingStatus = "error";
+      recordingError = "MIDI not connected";
+      logger.error("Cannot record: MIDI device not connected");
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        recordingStatus = 'idle';
+        recordingStatus = "idle";
         recordingError = null;
       }, 3000);
       return;
     }
 
     try {
-      recordingStatus = 'idle';
+      recordingStatus = "idle";
       recordingError = null;
       recordingProgress = 0;
 
       // Check if we have permission, request if needed
-      if (!audioInputState.permissionState || audioInputState.permissionState !== 'granted') {
-        recordingStatus = 'requesting-permission';
-        logger.info('Requesting microphone permission...');
+      if (
+        !audioInputState.permissionState ||
+        audioInputState.permissionState !== "granted"
+      ) {
+        recordingStatus = "requesting-permission";
+        logger.info("Requesting microphone permission...");
 
         const granted = await requestPermission();
         if (!granted) {
-          recordingStatus = 'error';
-          recordingError = 'Microphone permission denied';
-          logger.error('Microphone permission denied');
+          recordingStatus = "error";
+          recordingError = "Microphone permission denied";
+          logger.error("Microphone permission denied");
 
           // Reset error after 3 seconds
           setTimeout(() => {
-            recordingStatus = 'idle';
+            recordingStatus = "idle";
             recordingError = null;
           }, 3000);
           return;
@@ -397,13 +426,13 @@
       }
 
       // Start countdown
-      recordingStatus = 'countdown';
-      logger.info('Starting countdown...');
+      recordingStatus = "countdown";
+      logger.info("Starting countdown...");
 
       // Countdown from 3 to 1
       for (let i = 3; i >= 1; i--) {
         countdownNumber = i;
-        await new Promise(resolve => setTimeout(resolve, 667));
+        await new Promise((resolve) => setTimeout(resolve, 667));
       }
 
       // Start recording
@@ -411,51 +440,55 @@
 
       const processedAudio = await recordAudio(
         {
-          deviceId: audioInputState.selectedDeviceId || undefined
+          deviceId: audioInputState.selectedDeviceId || undefined,
         },
         (progress: RecordingProgress) => {
           // Update recording status based on progress
-          if (progress.stage === 'requesting') {
-            recordingStatus = 'requesting-permission';
+          if (progress.stage === "requesting") {
+            recordingStatus = "requesting-permission";
             recordingProgress = 0;
-          } else if (progress.stage === 'recording') {
-            recordingStatus = 'recording';
+          } else if (progress.stage === "recording") {
+            recordingStatus = "recording";
             recordingProgress = progress.percentage;
-          } else if (progress.stage === 'processing') {
-            recordingStatus = 'processing';
+          } else if (progress.stage === "processing") {
+            recordingStatus = "processing";
             recordingProgress = progress.percentage;
           }
-        }
+        },
       );
 
       // Create a File object from the processed audio
-      const blob = new Blob([processedAudio.pcmData], { type: 'audio/x-raw-pcm' });
-      const file = new File([blob], processedAudio.originalFileName, { type: 'audio/x-raw-pcm' });
+      const blob = new Blob([processedAudio.pcmData], {
+        type: "audio/x-raw-pcm",
+      });
+      const file = new File([blob], processedAudio.originalFileName, {
+        type: "audio/x-raw-pcm",
+      });
 
       // Upload via existing upload system
-      uploadStatus = 'uploading';
+      uploadStatus = "uploading";
       logger.info(`Uploading recorded audio to slot ${midiNoteNumber}`);
 
       await sampleUploadStore.quickUpload(file, midiNoteNumber);
 
       // Success
-      recordingStatus = 'idle';
-      uploadStatus = 'success';
+      recordingStatus = "idle";
+      uploadStatus = "success";
       logger.info(`Successfully uploaded recording to slot ${midiNoteNumber}`);
 
       // Reset success indicator after 2 seconds
       setTimeout(() => {
-        uploadStatus = 'idle';
+        uploadStatus = "idle";
       }, 2000);
-
     } catch (error) {
-      recordingStatus = 'error';
-      recordingError = error instanceof Error ? error.message : 'Recording failed';
+      recordingStatus = "error";
+      recordingError =
+        error instanceof Error ? error.message : "Recording failed";
       logger.error(`Recording failed: ${recordingError}`);
 
       // Reset error after 3 seconds
       setTimeout(() => {
-        recordingStatus = 'idle';
+        recordingStatus = "idle";
         recordingError = null;
       }, 3000);
     }
@@ -487,8 +520,10 @@
     <img src={imageSrc} alt="Voice" class="w-20 h-20" />
 
     <!-- Countdown display -->
-    {#if recordingStatus === 'countdown'}
-      <div class="absolute inset-0 flex items-center justify-center bg-black rounded-lg">
+    {#if recordingStatus === "countdown"}
+      <div
+        class="absolute inset-0 flex items-center justify-center bg-black rounded-lg"
+      >
         <div class="text-white text-6xl font-bold">
           {countdownNumber}
         </div>
@@ -496,10 +531,12 @@
     {/if}
 
     <!-- Recording progress indicator -->
-    {#if recordingStatus === 'recording' || recordingStatus === 'processing'}
-      <div class="absolute inset-0 flex items-center justify-center bg-opacity-70 rounded-lg">
+    {#if recordingStatus === "recording" || recordingStatus === "processing"}
+      <div
+        class="absolute inset-0 flex items-center justify-center bg-opacity-70 rounded-lg"
+      >
         <div class="text-white text-s font-bold">
-          {#if recordingStatus === 'recording'}
+          {#if recordingStatus === "recording"}
             {Math.round(recordingProgress)}%
           {:else}
             {Math.round(recordingProgress)}%
@@ -510,7 +547,9 @@
 
     <!-- Upload progress indicator -->
     {#if isUploadingThisSlot}
-      <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+      <div
+        class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg"
+      >
         <div class="text-white text-xs font-bold">
           {Math.round(uploadProgress)}%
         </div>
@@ -518,16 +557,22 @@
     {/if}
 
     <!-- Upload status indicator -->
-    {#if uploadStatus === 'success'}
-      <div class="absolute inset-0 flex items-center justify-center bg-green-500 bg-opacity-70 rounded-lg">
+    {#if uploadStatus === "success"}
+      <div
+        class="absolute inset-0 flex items-center justify-center bg-green-500 bg-opacity-70 rounded-lg"
+      >
         <div class="text-white text-2xl">✓</div>
       </div>
-    {:else if uploadStatus === 'error' && uploadError}
-      <div class="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-70 rounded-lg">
+    {:else if uploadStatus === "error" && uploadError}
+      <div
+        class="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-70 rounded-lg"
+      >
         <div class="text-white text-xs text-center p-1">{uploadError}</div>
       </div>
-    {:else if recordingStatus === 'error' && recordingError}
-      <div class="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-70 rounded-lg">
+    {:else if recordingStatus === "error" && recordingError}
+      <div
+        class="absolute inset-0 flex items-center justify-center bg-red-500 bg-opacity-70 rounded-lg"
+      >
         <div class="text-white text-xs text-center p-1">{recordingError}</div>
       </div>
     {/if}
@@ -539,10 +584,12 @@
       style="display: none"
       aria-label="Record"
       onclick={handleRecordClick}
-      disabled={recordingStatus !== 'idle' || uploadStatus !== 'idle'}
-      title={recordingStatus !== 'idle' ? 'Recording...' : 'Record 1 second of audio'}
+      disabled={recordingStatus !== "idle" || uploadStatus !== "idle"}
+      title={recordingStatus !== "idle"
+        ? "Recording..."
+        : "Record 1 second of audio"}
     >
-      <img src="icon_record.svg">
+      <img src="icon_record.svg" />
     </button>
     <button
       class="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center text-xs cursor-pointer"
@@ -550,16 +597,16 @@
       onclick={handleBrowseClick}
       title="Browse for audio file"
     >
-      <img src="icon_browse.svg">
+      <img src="icon_browse.svg" />
     </button>
     <button
-      class="w-8 h-8 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
+      class="w-8 h-8 bg-black text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
       aria-label="Reset"
       onclick={handleResetClick}
-      disabled={recordingStatus !== 'idle' || uploadStatus !== 'idle'}
+      disabled={recordingStatus !== "idle" || uploadStatus !== "idle"}
       title="Reset to factory sound"
     >
-      <img src="icon_reset.svg">
+      <img src="icon_reset.svg" />
     </button>
   </div>
 
@@ -574,5 +621,4 @@
 </div>
 
 <style>
-
 </style>
