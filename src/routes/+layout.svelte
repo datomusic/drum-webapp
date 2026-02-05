@@ -85,7 +85,7 @@
 		</nav>
 	</header>
 
-	<main class="p-4 flex-1 flex flex-col">
+	<main class="p-4 flex-1 flex flex-col overflow-x-hidden">
 		{@render children()}
 	</main>
 
