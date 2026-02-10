@@ -3,6 +3,8 @@
 	import { midiState, disconnectDevice } from "$lib/stores/midi.svelte";
 	import { audioInputState, selectDevice } from "$lib/stores/audioInput.svelte";
 
+	const showLanguageAndAudioInput = false;
+
 	const locales = [
 		{ code: "en", name: "English" },
 		{ code: "de", name: "Deutsch" },
@@ -33,22 +35,24 @@
 <footer class="bg-white p-4 text-center text-gray-200">
 	<div class="flex justify-between items-center max-w-screen-lg mx-auto">
 		<div class="flex items-center gap-2">
-			<select
-				id="language-select"
-				bind:value={$locale}
-				class="
+			{#if showLanguageAndAudioInput}
+				<select
+					id="language-select"
+					bind:value={$locale}
+					class="
 					text-sm text-gray-200 hover:text-gray-500 transition-colors cursor-pointer
 					border-none bg-transparent
 					focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-200
 				"
-			>
-				{#each locales as lang}
-					<option value={lang.code}>{lang.name}</option>
-				{/each}
-			</select>
+				>
+					{#each locales as lang}
+						<option value={lang.code}>{lang.name}</option>
+					{/each}
+				</select>
+			{/if}
 		</div>
 		<div class="flex items-center gap-4">
-			{#if midiState.isConnected && audioInputState.selectedDevice}
+			{#if showLanguageAndAudioInput && midiState.isConnected && audioInputState.selectedDevice}
 				<div class="relative audio-input-dropdown">
 					<button
 						class="flex items-center gap-2 text-sm hover:text-gray-500 transition-colors cursor-pointer"
