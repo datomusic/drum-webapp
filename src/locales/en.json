@@ -14,7 +14,7 @@
   "device_connection_button": "Connect",
   "midi_error_message": "Oops! Something went wrong: {error}",
   "midi_requesting_access": "Asking for permission...",
-  "midi_not_supported": "Your browser can't connect to the DRUM. Try Chrome, Edge, or Opera.",
+  "midi_not_supported": "Oops! Your browser is not supported. Try Brave, Chrome or Edge.",
   "midi_request_access_button": "Allow Connection",
   "connected": "Connected",
   "device_connected_status": "Connected to {deviceName}",
