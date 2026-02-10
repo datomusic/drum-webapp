@@ -97,19 +97,15 @@
 
   // Visual feedback for MIDI note trigger
   let isNoteActive = $state(false);
+  let flashTimeout: number | undefined;
 
-  // Watch for MIDI note triggers and blink when this note is played
-  // We watch 'active' instead of 'selectedSample' because 'active' cycles to null
-  // on note-off, which allows the effect to re-trigger on repeated notes
   $effect(() => {
     if (midiNoteState.active === midiNoteNumber) {
-      // Activate the blink instantly
       isNoteActive = true;
-
-      // Immediately start transitioning back (browser will render white first, then CSS transition)
-      requestAnimationFrame(() => {
+      clearTimeout(flashTimeout);
+      flashTimeout = setTimeout(() => {
         isNoteActive = false;
-      });
+      }, 50);
     }
   });
 
