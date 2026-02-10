@@ -59,12 +59,28 @@
     }
   });
 
+  // Track previous values to distinguish sample-selection changes from resize changes
+  let prevSelectedSampleIndex = selectedSampleIndex;
+  let prevContainerWidthPx = 0;
+
   // Reactive effect to update the translation when selectedSampleIndex or containerWidthPx changes
   $effect(() => {
     if (containerWidthPx > 0 && slotWidth > 0) {
       const targetX =
         containerWidthPx / 2 - selectedSampleIndex * slotWidth - slotWidth / 2;
-      stripTranslateX.set(targetX);
+
+      // Animate only when the selected sample changed; jump instantly on resize
+      const sampleChanged = selectedSampleIndex !== prevSelectedSampleIndex;
+      const isResize = containerWidthPx !== prevContainerWidthPx;
+
+      if (sampleChanged) {
+        stripTranslateX.set(targetX); // smooth 350ms tween
+      } else {
+        stripTranslateX.set(targetX, { duration: 0 }); // instant reposition
+      }
+
+      prevSelectedSampleIndex = selectedSampleIndex;
+      prevContainerWidthPx = containerWidthPx;
     }
   });
 </script>
