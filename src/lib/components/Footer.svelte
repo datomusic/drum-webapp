@@ -48,7 +48,7 @@
 			</select>
 		</div>
 		<div class="flex items-center gap-4">
-			{#if audioInputState.selectedDevice}
+			{#if midiState.isConnected && audioInputState.selectedDevice}
 				<div class="relative audio-input-dropdown">
 					<button
 						class="flex items-center gap-2 text-sm hover:text-gray-500 transition-colors cursor-pointer"

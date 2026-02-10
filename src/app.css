@@ -2,4 +2,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@theme {  --font-sans: "Space Mono"; }
+@theme {
+  --font-sans: "Sailec Medium", system-ui, sans-serif;
+}
+
+@font-face {
+  font-family: "Sailec Medium";
+  src: url("/fonts/Sailec-Medium.woff2") format("woff2"),
+       url("/fonts/Sailec-Medium.woff") format("woff");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}

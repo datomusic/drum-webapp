@@ -352,7 +352,8 @@
                 <img
                     src="/drum_power_on_white.svg"
                     alt={$_("no_midi_devices_found")}
-                    class="w-full max-w-md h-auto"
+                    class="w-full max-w-300 h-auto"
+                    style="margin-top: 12vh"
                 />
             </div>
         {/if}
