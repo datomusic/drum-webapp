@@ -6,6 +6,14 @@
   --font-sans: "Sailec Medium", system-ui, sans-serif;
 }
 
+:root {
+  --sample-button-size: 64px;
+  --sample-gap: 32px;
+  --sample-slot-width: calc(var(--sample-button-size) + var(--sample-gap));
+  --voice-size: 100px;
+  --track-gap: 16px;
+}
+
 @font-face {
   font-family: "Sailec Medium";
   src: url("/fonts/Sailec-Medium.woff2") format("woff2"),

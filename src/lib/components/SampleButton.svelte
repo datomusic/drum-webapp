@@ -1,21 +1,18 @@
 <script lang="ts">
-  import { midiNoteState, playNote } from '$lib/stores/midi.svelte';
-  import { colorFilters } from '$lib/stores/colorFilters';
+  import { midiNoteState, playNote } from "$lib/stores/midi.svelte";
+  import { colorFilters } from "$lib/stores/colorFilters";
 
   // MIDI display offset: converts MIDI note 30-61 to display index 1-32
   const MIDI_DISPLAY_OFFSET = 30;
 
-
-
-
   interface Props {
     /**
-   * The color of the button, e.g., '#FF0000' or 'red'.
-   */
+     * The color of the button, e.g., '#FF0000' or 'red'.
+     */
     color: string;
     /**
-   * The MIDI note number to display on the button.
-   */
+     * The MIDI note number to display on the button.
+     */
     midiNoteNumber: number;
   }
 
@@ -43,14 +40,13 @@
 
 <button
   class="
-    w-16 h-16
     rounded-full
     text-white text-lg
     cursor-pointer
     transition-all duration-150 ease-in-out
     focus:outline-none
   "
-  style="background-color: {color}; {filterStyle}"
+  style="width: var(--sample-button-size); height: var(--sample-button-size); background-color: {color}; {filterStyle}"
   onclick={handleClick}
 >
   {displayIndex}

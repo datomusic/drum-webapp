@@ -100,7 +100,6 @@
     ];
 </script>
 
-<div class="w-full h-4"></div>
 {#each tracks as track, i (i)}
     <Track samples={track.samples} trackIndex={i} />
 {/each}

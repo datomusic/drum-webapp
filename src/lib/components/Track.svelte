@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { tweened } from 'svelte/motion';
-  import { cubicOut } from 'svelte/easing';
-  import SampleButton from './SampleButton.svelte';
-  import Voice from './Voice.svelte';
-  import { midiNoteState } from '$lib/stores/midi.svelte';
+  import { tweened } from "svelte/motion";
+  import { cubicOut } from "svelte/easing";
+  import SampleButton from "./SampleButton.svelte";
+  import Voice from "./Voice.svelte";
+  import { midiNoteState } from "$lib/stores/midi.svelte";
+  import { onMount } from "svelte";
 
   interface Props {
     samples: Array<{ color: string; midiNoteNumber: number }>;
@@ -15,22 +16,31 @@
   // Initialize selectedSampleIndex to the middle, or the first if samples are few
   let selectedSampleIndex = $state(Math.floor(samples.length / 2));
   let selectedVoiceColor = $derived(samples[selectedSampleIndex]?.color);
-  // ADDED: Get the MIDI note number of the currently selected voice
-  let selectedVoiceMidiNote = $derived(samples[selectedSampleIndex]?.midiNoteNumber);
+  let selectedVoiceMidiNote = $derived(
+    samples[selectedSampleIndex]?.midiNoteNumber,
+  );
 
   const voiceIcons = [
-    'pad_kick.svg',
-    'pad_snare.svg',
-    'pad_clap.svg',
-    'pad_hat.svg',
+    "pad_kick.svg",
+    "pad_snare.svg",
+    "pad_clap.svg",
+    "pad_hat.svg",
   ];
   let currentTrackIcon = $derived(voiceIcons[trackIndex % voiceIcons.length]);
 
-  const buttonWidthPx = 80;
-  const gapPx = 16;
-  const itemSlotWidthPx = buttonWidthPx + gapPx; // Effective width of a button slot including its gap
+  // Read sizing from CSS custom properties — single source of truth
+  let slotWidth = $state(80); // fallback, overwritten on mount
+  let buttonSize = $state(64);
 
-  let containerWidthPx = $state(0); // Bound to the track-container's clientWidth
+  onMount(() => {
+    const styles = getComputedStyle(document.documentElement);
+    buttonSize =
+      parseFloat(styles.getPropertyValue("--sample-button-size")) || 64;
+    const gap = parseFloat(styles.getPropertyValue("--sample-gap")) || 16;
+    slotWidth = buttonSize + gap;
+  });
+
+  let containerWidthPx = $state(0);
 
   const stripTranslateX = tweened(0, {
     duration: 350,
@@ -41,7 +51,7 @@
   $effect(() => {
     if (midiNoteState.selectedSample !== null) {
       const incomingNoteIndex = samples.findIndex(
-        sample => sample.midiNoteNumber === midiNoteState.selectedSample
+        (sample) => sample.midiNoteNumber === midiNoteState.selectedSample,
       );
       if (incomingNoteIndex !== -1) {
         selectedSampleIndex = incomingNoteIndex;
@@ -51,32 +61,22 @@
 
   // Reactive effect to update the translation when selectedSampleIndex or containerWidthPx changes
   $effect(() => {
-    if (containerWidthPx > 0) {
-      // Calculate the X position that would place the center of the selected button
-      // at the center of the container.
-      // The total offset to the start of the selected button is `selectedSampleIndex * itemSlotWidthPx`.
-      // To center this button, its center (`buttonWidthPx / 2`) should align with `containerWidthPx / 2`.
+    if (containerWidthPx > 0 && slotWidth > 0) {
       const targetX =
-        containerWidthPx / 2 - selectedSampleIndex * itemSlotWidthPx - buttonWidthPx / 2;
+        containerWidthPx / 2 - selectedSampleIndex * slotWidth - slotWidth / 2;
       stripTranslateX.set(targetX);
     }
   });
 </script>
 
-<div
-  class="flex-1 grow-1 relative items-center w-full"
-  style="min-height: 40px"
-  bind:clientWidth={containerWidthPx}
->
+<div class="track" bind:clientWidth={containerWidthPx}>
+  <!-- Button strip: absolutely positioned so it can slide offscreen -->
   <div
-    class="button-strip absolute flex bg-white"
-    style="transform: translateX({$stripTranslateX}px); top: 0px; will-change: transform; white-space: nowrap; top: -12px"
+    class="button-strip"
+    style="transform: translateX({$stripTranslateX}px) translateY(-50%);"
   >
     {#each samples as sample, i (sample.midiNoteNumber)}
-      <div
-        class="sample-item-wrapper flex-shrink-0"
-        style="width: {buttonWidthPx}px; margin-right: { gapPx/2 }px; margin-left: { gapPx/2 }px;"
-      >
+      <div class="sample-slot">
         <SampleButton
           color={sample.color}
           midiNoteNumber={sample.midiNoteNumber}
@@ -85,7 +85,8 @@
     {/each}
   </div>
 
-  <div class="voice-overlay-container z-10 absolute top-10 left-1/2 -translate-x-1/2 -translate-y-1/2">
+  <!-- Voice overlay: in normal flow, defines the track's height -->
+  <div class="voice-container">
     {#if samples[selectedSampleIndex]}
       <Voice
         color={selectedVoiceColor}
@@ -97,9 +98,37 @@
 </div>
 
 <style>
-  /* Minimal styles needed as Tailwind and inline styles handle most of it.
-     will-change and white-space are added for the button strip for performance and layout.
-     The h-36 on track-container ensures enough vertical space for Voice component with buttons.
-     SampleButton and Voice components are expected to be sm:w-20 sm:h-20 (80px).
-   */
+  .track {
+    position: relative;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    justify-items: center;
+    margin-bottom: var(--track-gap);
+  }
+
+  .button-strip {
+    position: absolute;
+    left: 0;
+    /* Vertically center the strip on the Voice's main button */
+    top: calc(var(--voice-size) / 2);
+    display: flex;
+    white-space: nowrap;
+    will-change: transform;
+    background: white;
+  }
+
+  .sample-slot {
+    flex-shrink: 0;
+    width: var(--sample-button-size);
+    margin-left: calc(var(--sample-gap) / 2);
+    margin-right: calc(var(--sample-gap) / 2);
+  }
+
+  .voice-container {
+    position: relative;
+    z-index: 10;
+    /* Grid places this in normal flow — its intrinsic height defines the track height */
+  }
 </style>

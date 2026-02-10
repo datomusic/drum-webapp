@@ -511,7 +511,7 @@
     class:border-blue-500={isDragOver}
     class:bg-blue-100={isDragOver}
     class:z-[1000]={$isDraggingOverWindow}
-    style="{backgroundStyle} {filterStyle} {transitionStyle} width:100px; height: 100px;"
+    style="{backgroundStyle} {filterStyle} {transitionStyle} width: var(--voice-size); height: var(--voice-size);"
     onclick={handleClick}
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
