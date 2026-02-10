@@ -100,7 +100,11 @@
   let flashTimeout: number | undefined;
 
   $effect(() => {
-    if (midiNoteState.active === midiNoteNumber) {
+    // Depend on triggerId to catch every note event, even if repeated
+    if (
+      midiNoteState.triggerId > 0 &&
+      midiNoteState.lastTriggeredNote === midiNoteNumber
+    ) {
       isNoteActive = true;
       clearTimeout(flashTimeout);
       flashTimeout = setTimeout(() => {

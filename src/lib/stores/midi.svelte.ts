@@ -63,11 +63,15 @@ let midiState = $state<MidiState>(initialState);
 interface MidiNoteState {
     active: number | null;
     selectedSample: number | null;
+    triggerId: number;
+    lastTriggeredNote: number | null;
 }
 
 const midiNoteState = $state<MidiNoteState>({
     active: null,
     selectedSample: null,
+    triggerId: 0,
+    lastTriggeredNote: null,
 });
 
 function parseFirmwareVersionReply(data: Uint8Array): string | null {
@@ -136,6 +140,8 @@ function handleMidiNoteMessage(data: Uint8Array): void {
     if (status === MIDI_NOTE_ON && velocity > 0) {
         midiNoteState.active = noteNumber;
         midiNoteState.selectedSample = noteNumber;
+        midiNoteState.triggerId++;
+        midiNoteState.lastTriggeredNote = noteNumber;
     } else if (status === MIDI_NOTE_OFF || (status === MIDI_NOTE_ON && velocity === 0)) {
         midiNoteState.active = null;
     }
@@ -370,6 +376,8 @@ function playNote(noteNumber: number) {
 
         midiNoteState.active = noteNumber;
         midiNoteState.selectedSample = noteNumber;
+        midiNoteState.triggerId++;
+        midiNoteState.lastTriggeredNote = noteNumber;
 
         setTimeout(() => {
             selectedOutput.send([MIDI_NOTE_OFF_CHANNEL1, noteNumber, NOTE_OFF_VELOCITY]);
