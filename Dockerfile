@@ -3,8 +3,9 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package manifest only (omit lockfile to avoid npm's platform-specific
+# optional-dependency bug: https://github.com/npm/cli/issues/4828)
+COPY package.json ./
 
 # Install dependencies
 RUN npm install
