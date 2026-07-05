@@ -51,5 +51,7 @@
   "recorder_quieter": "Zachter",
   "recorder_louder": "Harder",
   "recorder_play": "Afspelen",
-  "recorder_again": "Opnieuw opnemen"
+  "recorder_again": "Opnieuw opnemen",
+  "recorder_save": "Opslaan op DRUM",
+  "recorder_saving": "Opslaan..."
 }

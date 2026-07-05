@@ -51,5 +51,7 @@
   "recorder_quieter": "Quieter",
   "recorder_louder": "Louder",
   "recorder_play": "Play",
-  "recorder_again": "Record again"
+  "recorder_again": "Record again",
+  "recorder_save": "Save to DRUM",
+  "recorder_saving": "Saving..."
 }

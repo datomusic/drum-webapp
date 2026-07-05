@@ -54,7 +54,8 @@ function generateUploadId(): string {
  * Add file to upload queue
  */
 function addToQueue(file: File, targetSlot: number): string {
-  if (!isAudioFile(file)) {
+  // Raw PCM from the sample recorder bypasses format validation and processing
+  if (file.type !== 'audio/x-raw-pcm' && !isAudioFile(file)) {
     throw new Error(`File ${file.name} is not a supported audio format`);
   }
 

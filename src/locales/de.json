@@ -51,5 +51,7 @@
   "recorder_quieter": "Leiser",
   "recorder_louder": "Lauter",
   "recorder_play": "Abspielen",
-  "recorder_again": "Nochmal aufnehmen"
+  "recorder_again": "Nochmal aufnehmen",
+  "recorder_save": "Auf DRUM speichern",
+  "recorder_saving": "Speichert..."
 }

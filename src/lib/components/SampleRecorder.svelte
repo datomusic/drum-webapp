@@ -7,6 +7,8 @@
     requestPermission,
     selectDevice
   } from '$lib/stores/audioInput.svelte';
+  import { midiNoteState } from '$lib/stores/midi.svelte';
+  import { sampleUploadStore } from '$lib/stores/sampleUpload';
   import { createLogger } from '$lib/utils/logger';
 
   const logger = createLogger('SampleRecorder');
@@ -170,10 +172,6 @@
     status = 'monitoring';
   }
 
-  function adjustGain(deltaDb: number) {
-    gainDb = Math.max(-24, Math.min(24, gainDb + deltaDb));
-  }
-
   function onTrimStartInput(value: number) {
     trimStartMs = Math.min(value, trimEndMs - 10);
     if (trimEndMs - trimStartMs > MAX_SELECTION_S * 1000) {
@@ -197,6 +195,54 @@
       out[i] = Math.max(-1, Math.min(1, recorded[start + i] * gainFactor));
     }
     return out;
+  }
+
+  let isSaving = $state(false);
+
+  async function saveToDevice() {
+    const slot = midiNoteState.selectedSample;
+    if (slot === null || isSaving) return;
+
+    errorMessage = null;
+    isSaving = true;
+
+    try {
+      let selection = getSelection();
+      if (recordedSampleRate !== 44100) {
+        selection = resampleLinear(selection, recordedSampleRate, 44100);
+      }
+
+      // Convert to 16-bit little-endian PCM for the upload queue's raw fast path
+      const pcm = new DataView(new ArrayBuffer(selection.length * 2));
+      for (let i = 0; i < selection.length; i++) {
+        pcm.setInt16(i * 2, Math.round(selection[i] * 32767), true);
+      }
+
+      const file = new File([pcm.buffer], `recording-${Date.now()}.raw`, {
+        type: 'audio/x-raw-pcm'
+      });
+
+      await sampleUploadStore.quickUpload(file, slot);
+      logger.info(`Saved recording to slot ${slot}`);
+    } catch (error) {
+      errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Save to device failed: ${errorMessage}`);
+    } finally {
+      isSaving = false;
+    }
+  }
+
+  function resampleLinear(input: Float32Array, fromRate: number, toRate: number): Float32Array {
+    const ratio = fromRate / toRate;
+    const output = new Float32Array(Math.round(input.length / ratio));
+    for (let i = 0; i < output.length; i++) {
+      const pos = i * ratio;
+      const idx = Math.floor(pos);
+      const frac = pos - idx;
+      const next = idx + 1 < input.length ? input[idx + 1] : input[idx] || 0;
+      output[i] = (input[idx] || 0) * (1 - frac) + next * frac;
+    }
+    return output;
   }
 
   function playSelection() {
@@ -331,7 +377,23 @@
     <p class="rounded bg-red-100 p-2 text-red-800">{errorMessage}</p>
   {/if}
 
-  <canvas bind:this={canvasEl} width="640" height="160" class="w-full rounded-lg"></canvas>
+  <div class="flex items-stretch gap-3">
+    <canvas bind:this={canvasEl} width="640" height="160" class="min-w-0 flex-1 rounded-lg"></canvas>
+    <div class="flex flex-col items-center gap-1">
+      <input
+        type="range"
+        class="gain-slider"
+        min="-24"
+        max="24"
+        step="3"
+        disabled={status !== 'recorded'}
+        value={gainDb}
+        oninput={(e) => (gainDb = Number(e.currentTarget.value))}
+        aria-label="{$_('recorder_quieter')} / {$_('recorder_louder')}"
+      />
+      <span class="text-xs">{gainDb > 0 ? '+' : ''}{gainDb} dB</span>
+    </div>
+  </div>
 
   {#if status === 'idle'}
     <button
@@ -390,22 +452,6 @@
         </label>
       </div>
 
-      <div class="flex items-center gap-2">
-        <button
-          class="rounded-lg bg-gray-200 px-4 py-3 text-lg font-bold"
-          onclick={() => adjustGain(-3)}
-        >
-          {$_('recorder_quieter')}
-        </button>
-        <span class="min-w-16 text-center text-sm">{gainDb > 0 ? '+' : ''}{gainDb} dB</span>
-        <button
-          class="rounded-lg bg-gray-200 px-4 py-3 text-lg font-bold"
-          onclick={() => adjustGain(3)}
-        >
-          {$_('recorder_louder')}
-        </button>
-      </div>
-
       <div class="flex gap-2">
         <button
           class="flex-1 rounded-lg bg-teal-600 px-6 py-4 text-lg font-bold text-white"
@@ -414,7 +460,14 @@
           {$_('recorder_play')}
         </button>
         <button
-          class="flex-1 rounded-lg bg-gray-200 px-6 py-4 text-lg font-bold"
+          class="flex-1 rounded-lg bg-yellow-400 px-6 py-4 text-lg font-bold disabled:opacity-50"
+          onclick={saveToDevice}
+          disabled={midiNoteState.selectedSample === null || isSaving}
+        >
+          {isSaving ? $_('recorder_saving') : $_('recorder_save')}
+        </button>
+        <button
+          class="flex-1 rounded-lg bg-red-600 px-6 py-4 text-lg font-bold text-white"
           onclick={recordAgain}
         >
           {$_('recorder_again')}
@@ -423,3 +476,16 @@
     {/if}
   {/if}
 </section>
+
+<style>
+  .gain-slider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    height: 100%;
+    min-height: 8rem;
+  }
+
+  .gain-slider:disabled {
+    opacity: 0.3;
+  }
+</style>
