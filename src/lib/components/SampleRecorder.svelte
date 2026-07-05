@@ -161,10 +161,132 @@
     captureChunks = [];
     recorded = merged;
     gainDb = 0;
-    trimStartMs = 0;
-    trimEndMs = Math.min(1000, Math.floor((merged.length / recordedSampleRate) * 1000));
+
+    const durationMs = Math.floor((merged.length / recordedSampleRate) * 1000);
+    const env = computeEnvelope(merged, recordedSampleRate);
+    const onsetFrame = env ? findFirstTransient(env) : null;
+
+    // Snap the start marker just before the first transient, keeping a
+    // few ms of attack. Fall back to the very start when nothing is found.
+    trimStartMs = onsetFrame !== null && env
+      ? Math.max(0, onsetFrame * env.hopMs - 10)
+      : 0;
+    trimEndMs = Math.min(trimStartMs + MAX_SELECTION_S * 1000, durationMs);
+
+    // Snap the end marker to a quiet spot after the sound has decayed,
+    // so we don't cut off mid-transient. If the sound fills the whole
+    // window, keep the maximum length.
+    if (env && onsetFrame !== null) {
+      const maxFrame = Math.floor(trimEndMs / env.hopMs);
+      const quietFrame = findQuietEnd(env, onsetFrame, maxFrame);
+      if (quietFrame !== null) {
+        // Small pad after the decay point; never shorter than 100ms
+        const candidate = quietFrame * env.hopMs + 20;
+        trimEndMs = Math.min(trimEndMs, Math.max(trimStartMs + 100, candidate));
+      }
+    }
     status = 'recorded';
     logger.info(`Recorded ${merged.length} samples at ${recordedSampleRate}Hz`);
+  }
+
+  interface Envelope {
+    rms: Float32Array;
+    hopMs: number;
+    noiseFloor: number;
+    peak: number;
+  }
+
+  /**
+   * Short-time RMS energy envelope: 10ms windows at a 5ms hop, with the
+   * noise floor estimated as the 20th percentile of frame energies.
+   */
+  function computeEnvelope(samples: Float32Array, sampleRate: number): Envelope | null {
+    const hop = Math.floor(sampleRate * 0.005); // 5ms hop
+    const win = Math.floor(sampleRate * 0.01); // 10ms window
+    const frameCount = Math.floor((samples.length - win) / hop);
+    if (frameCount < 10) return null;
+
+    const rms = new Float32Array(frameCount);
+    for (let f = 0; f < frameCount; f++) {
+      let sum = 0;
+      const start = f * hop;
+      for (let i = start; i < start + win; i++) {
+        sum += samples[i] * samples[i];
+      }
+      rms[f] = Math.sqrt(sum / win);
+    }
+
+    const peak = Math.max(...rms);
+    const sorted = Array.from(rms).sort((a, b) => a - b);
+    const noiseFloor = sorted[Math.floor(frameCount * 0.2)];
+
+    return { rms, hopMs: 5, noiseFloor, peak };
+  }
+
+  /**
+   * Find the first significant transient in the envelope. A frame only
+   * counts as the onset when the energy stays up for a while afterwards
+   * (sustain check), so a tiny click won't trigger it, and onsets too
+   * close to the end of the buffer are ignored.
+   *
+   * Returns the frame index of the onset, or null if none found.
+   */
+  function findFirstTransient(env: Envelope): number | null {
+    const { rms, noiseFloor, peak } = env;
+    if (peak < 1e-4) return null; // effectively silence
+
+    // Onset must clear both the noise floor and a fraction of the loudest
+    // moment, so quiet rumble or a faint blip doesn't count
+    const threshold = Math.max(noiseFloor * 4, peak * 0.15);
+
+    const sustainFrames = 6; // 30ms
+    const minRemainingFrames = 10; // ignore onsets in the last 50ms
+
+    for (let f = 0; f < rms.length - minRemainingFrames; f++) {
+      if (rms[f] < threshold) continue;
+
+      // Sustain check: average energy over the next 30ms must hold up
+      let sum = 0;
+      const end = Math.min(rms.length, f + sustainFrames);
+      for (let i = f; i < end; i++) sum += rms[i];
+      if (sum / (end - f) >= threshold * 0.6) {
+        return f;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Find where the sound has decayed after the onset, so the end marker
+   * lands in a quiet spot instead of cutting a transient. Scans forward
+   * from the onset for the last point where energy drops near the noise
+   * floor and stays there briefly. Returns the frame to end at, or null
+   * when the sound is still going at maxFrame (keep the full window).
+   */
+  function findQuietEnd(env: Envelope, onsetFrame: number, maxFrame: number): number | null {
+    const { rms, noiseFloor, peak } = env;
+    const releaseThreshold = Math.max(noiseFloor * 2, peak * 0.05);
+    const quietFrames = 8; // must stay quiet for 40ms
+
+    // Last frame with significant energy before maxFrame
+    let lastLoud = onsetFrame;
+    for (let f = onsetFrame; f < Math.min(maxFrame, rms.length); f++) {
+      if (rms[f] >= releaseThreshold) lastLoud = f;
+    }
+
+    // Confirm it actually decays after that point
+    let quietRun = 0;
+    for (let f = lastLoud + 1; f < Math.min(maxFrame, rms.length); f++) {
+      if (rms[f] < releaseThreshold) {
+        quietRun++;
+        if (quietRun >= quietFrames) return f;
+      } else {
+        quietRun = 0;
+      }
+    }
+
+    return null;
   }
 
   function recordAgain() {
@@ -278,6 +400,15 @@
     const ctx = canvasEl.getContext('2d');
     if (!ctx) return;
 
+    // Match the backing store to the displayed size for crisp rendering
+    const dpr = window.devicePixelRatio || 1;
+    const displayWidth = Math.round(canvasEl.clientWidth * dpr);
+    const displayHeight = Math.round(canvasEl.clientHeight * dpr);
+    if (canvasEl.width !== displayWidth || canvasEl.height !== displayHeight) {
+      canvasEl.width = displayWidth;
+      canvasEl.height = displayHeight;
+    }
+
     const { width, height } = canvasEl;
     const midY = height / 2;
 
@@ -286,7 +417,7 @@
     ctx.fillRect(0, 0, width, height);
 
     if (status === 'recorded' && recorded) {
-      drawWaveform(ctx, recorded, gainFactor, width, height);
+      drawWaveform(ctx, recorded, gainFactor, width, height, dpr);
 
       // Shade areas outside the trim selection
       const startX = (trimStartMs / recordedDurationMs) * width;
@@ -295,27 +426,27 @@
       ctx.fillRect(0, 0, startX, height);
       ctx.fillRect(endX, 0, width - endX, height);
       ctx.fillStyle = '#ffd200';
-      ctx.fillRect(startX - 2, 0, 4, height);
-      ctx.fillRect(endX - 2, 0, 4, height);
+      ctx.fillRect(startX - 2 * dpr, 0, 4 * dpr, height);
+      ctx.fillRect(endX - 2 * dpr, 0, 4 * dpr, height);
     } else if (status === 'monitoring' || status === 'recording') {
       // Live scrolling view of the last second
       const last = readRingTail(Math.floor(recordedSampleRate * MAX_SELECTION_S));
-      drawWaveform(ctx, last, 1, width, height);
+      drawWaveform(ctx, last, 1, width, height, dpr);
 
       // Level meter bar along the bottom
       ctx.fillStyle = monitorLevel > 0.95 ? '#ff4b3e' : '#00e0c6';
-      ctx.fillRect(0, height - 6, monitorLevel * width, 6);
+      ctx.fillRect(0, height - 6 * dpr, monitorLevel * width, 6 * dpr);
 
       if (status === 'recording') {
         ctx.fillStyle = '#ff4b3e';
         ctx.beginPath();
-        ctx.arc(width - 20, 20, 8, 0, Math.PI * 2);
+        ctx.arc(width - 20 * dpr, 20 * dpr, 8 * dpr, 0, Math.PI * 2);
         ctx.fill();
       }
     } else {
       // Idle: flat line
       ctx.strokeStyle = '#00e0c6';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2 * dpr;
       ctx.beginPath();
       ctx.moveTo(0, midY);
       ctx.lineTo(width, midY);
@@ -328,13 +459,14 @@
     samples: Float32Array,
     gain: number,
     width: number,
-    height: number
+    height: number,
+    dpr: number
   ) {
     const midY = height / 2;
     const samplesPerPixel = samples.length / width;
 
     ctx.strokeStyle = '#00e0c6';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = dpr;
     ctx.beginPath();
     for (let x = 0; x < width; x++) {
       const start = Math.floor(x * samplesPerPixel);
@@ -378,7 +510,7 @@
   {/if}
 
   <div class="flex items-stretch gap-3">
-    <canvas bind:this={canvasEl} width="640" height="160" class="min-w-0 flex-1 rounded-lg"></canvas>
+    <canvas bind:this={canvasEl} class="h-40 min-w-0 flex-1 rounded-lg"></canvas>
     <div class="flex flex-col items-center gap-1">
       <input
         type="range"
