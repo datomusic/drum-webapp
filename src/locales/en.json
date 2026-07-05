@@ -39,5 +39,17 @@
   "audio_input_label": "Audio input: {deviceName}",
   "recording_not_supported": "Recording not supported in this browser",
   "recording_button_title": "Record 1 second of audio",
-  "recording_button_title_active": "Recording..."
+  "recording_button_title_active": "Recording...",
+  "recorder_title": "Record a sound",
+  "recorder_start_mic": "Turn on microphone",
+  "recorder_choose_mic": "Choose your microphone:",
+  "recorder_unknown_mic": "Microphone",
+  "recorder_record": "Record",
+  "recorder_recording": "Recording...",
+  "recorder_trim_start": "Start",
+  "recorder_trim_end": "End",
+  "recorder_quieter": "Quieter",
+  "recorder_louder": "Louder",
+  "recorder_play": "Play",
+  "recorder_again": "Record again"
 }

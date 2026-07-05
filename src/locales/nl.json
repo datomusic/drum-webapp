@@ -39,5 +39,17 @@
   "audio_input_label": "Audio-ingang: {deviceName}",
   "recording_not_supported": "Opname wordt niet ondersteund in deze browser",
   "recording_button_title": "Neem 1 seconde audio op",
-  "recording_button_title_active": "Opname bezig..."
+  "recording_button_title_active": "Opname bezig...",
+  "recorder_title": "Neem een geluid op",
+  "recorder_start_mic": "Microfoon aanzetten",
+  "recorder_choose_mic": "Kies je microfoon:",
+  "recorder_unknown_mic": "Microfoon",
+  "recorder_record": "Opnemen",
+  "recorder_recording": "Opname loopt...",
+  "recorder_trim_start": "Begin",
+  "recorder_trim_end": "Einde",
+  "recorder_quieter": "Zachter",
+  "recorder_louder": "Harder",
+  "recorder_play": "Afspelen",
+  "recorder_again": "Opnieuw opnemen"
 }
