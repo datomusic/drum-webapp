@@ -613,8 +613,8 @@
   .gain-slider {
     writing-mode: vertical-lr;
     direction: rtl;
-    height: 100%;
-    min-height: 8rem;
+    flex: 1;
+    min-height: 0;
   }
 
   .gain-slider:disabled {
