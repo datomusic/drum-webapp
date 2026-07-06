@@ -1,6 +1,6 @@
 <script lang="ts">
     import { _ } from "svelte-i18n";
-    import { midiState } from "$lib/stores/midi.svelte";
+    import { midiState, rebootToBootloader } from "$lib/stores/midi.svelte";
     import { featureFlags } from "$lib/stores/featureFlags.svelte";
     import {
         legacyUpgradeState,
@@ -10,10 +10,6 @@
     } from "$lib/stores/legacyFirmwareUpgrade.svelte";
     import { isPreV1Firmware } from "$lib/utils/versioning";
     import { getLatestFirmware } from "$lib/config/firmware";
-    import {
-        enterUf2DownloaderMode,
-        isWebSerialSupported,
-    } from "$lib/services/legacyBootloader";
     import { createLogger } from "$lib/utils/logger";
 
     const logger = createLogger("LegacyFirmwareUpgrade");
@@ -66,23 +62,16 @@
     async function handleUpgrade() {
         errorMessage = null;
 
-        if (!isWebSerialSupported()) {
-            errorMessage = $_("legacy_fw_serial_not_supported");
+        if (!midiState.selectedOutput) {
+            errorMessage = $_("legacy_fw_reset_failed");
             return;
         }
 
         step = "working";
-        try {
-            await enterUf2DownloaderMode();
-        } catch (error) {
-            logger.warn(
-                "Failed to enter UF2 downloader mode: " +
-                    (error instanceof Error ? error.message : String(error)),
-            );
-            step = "prompt";
-            errorMessage = $_("legacy_fw_reset_failed");
-            return;
-        }
+        // Send the DRUM's RebootBootloader SysEx command (0x0B). The device
+        // reboots into UF2 downloader mode and re-enumerates as a DRUMBOOT
+        // mass storage drive.
+        rebootToBootloader();
 
         try {
             const firmware = await getLatestFirmware();

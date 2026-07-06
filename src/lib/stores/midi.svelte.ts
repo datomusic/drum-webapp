@@ -56,6 +56,7 @@ const DRUM_DEVICE_FILTERS_LOWER = DRUM_DEVICE_FILTERS.map((f) => f.toLowerCase()
 const NOTE_ON_VELOCITY = 127;
 const NOTE_OFF_VELOCITY = 0;
 const NOTE_DURATION_MS = 100;
+const IDENTITY_RETRY_DELAY_MS = 1000;
 
 const logger = createLogger('MIDI');
 
@@ -307,6 +308,17 @@ function connectDevice(deviceId: string) {
             }
             _setDeviceConnected(output, input || null);
             logger.info('Connected to MIDI device: ' + output.name);
+
+            // Request the firmware version here rather than in a component
+            // effect: components may unmount on connection state changes
+            // before their effects run, and no version would ever be requested.
+            requestIdentity();
+            setTimeout(() => {
+                if (midiState.isConnected && midiState.selectedOutput && !midiState.firmwareVersion) {
+                    logger.debug('Retrying identity request after delay...', 'firmware');
+                    requestIdentity();
+                }
+            }, IDENTITY_RETRY_DELAY_MS);
         } else {
             _setDeviceConnectionError('Selected device not found.');
             logger.error('Device not found: ' + deviceId);

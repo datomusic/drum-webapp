@@ -64,6 +64,5 @@
   "legacy_fw_instructions_step2": "Ziehe die heruntergeladene .uf2-Datei auf das DRUMBOOT-Laufwerk.",
   "legacy_fw_instructions_step3": "Warte, bis deine DRUM neu startet. Fertig!",
   "legacy_fw_done_button": "Fertig",
-  "legacy_fw_serial_not_supported": "Hoppla! Dein Browser kann das nicht. Probiere Chrome oder Edge.",
   "legacy_fw_reset_failed": "Das hat nicht geklappt. Wähle deine DRUM aus der Liste und versuche es nochmal."
 }
