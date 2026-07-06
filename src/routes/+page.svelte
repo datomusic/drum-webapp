@@ -4,6 +4,7 @@
     import DeviceConnection from "$lib/components/DeviceConnection.svelte";
     import SampleRecorder from "$lib/components/SampleRecorder.svelte";
     import LegacyFirmwareUpgrade from "$lib/components/LegacyFirmwareUpgrade.svelte";
+    import FirmwareUpgrade from "$lib/components/FirmwareUpgrade.svelte";
     import { midiState } from "$lib/stores/midi.svelte";
     import { featureFlags } from "$lib/stores/featureFlags.svelte";
 </script>
@@ -22,4 +23,8 @@
 <!-- Rendered unconditionally: the upgrade dialog must stay visible after the
      device disconnects when it reboots into UF2 downloader mode -->
 <LegacyFirmwareUpgrade />
+
+<!-- Also rendered unconditionally: the dialog must stay visible while the
+     device reboots into the new firmware after a SysEx upload -->
+<FirmwareUpgrade />
 

@@ -5,6 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"fetch-firmware": "node scripts/fetch-latest-firmware.mjs",
+		"prebuild": "npm run fetch-firmware",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",

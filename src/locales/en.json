@@ -64,5 +64,15 @@
   "legacy_fw_instructions_step2": "Drag the downloaded .uf2 file onto the DRUMBOOT drive.",
   "legacy_fw_instructions_step3": "Wait for your DRUM to restart. Done!",
   "legacy_fw_done_button": "Done",
-  "legacy_fw_reset_failed": "That didn't work. Pick your DRUM from the list and try again."
+  "legacy_fw_reset_failed": "That didn't work. Pick your DRUM from the list and try again.",
+  "fw_upgrade_title": "Update your DRUM",
+  "fw_upgrade_message": "Your DRUM has firmware {version}. Version {newVersion} is ready. Do you want to update?",
+  "fw_upgrade_button": "Update firmware",
+  "fw_upgrade_not_now_button": "Not now",
+  "fw_upgrade_downloading": "Getting the new firmware...",
+  "fw_upgrade_uploading": "Sending the update to your DRUM...",
+  "fw_upgrade_keep_connected": "Keep your DRUM plugged in.",
+  "fw_upgrade_rebooting": "Almost done! Your DRUM is restarting...",
+  "fw_upgrade_done_button": "Done",
+  "fw_upgrade_failed": "That didn't work. Check your DRUM and try again."
 }
