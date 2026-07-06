@@ -33,6 +33,25 @@
         }
     });
 
+    // After a successful UF2 upgrade the device reconnects on its own and
+    // reports its new version. Once it's no longer pre-v1.0.0 the upgrade is
+    // done, so close the dialog automatically (unless it was forced open via
+    // the console API for testing).
+    $effect(() => {
+        if (
+            legacyUpgradeState.open &&
+            !legacyUpgradeState.forced &&
+            midiState.isConnected &&
+            midiState.firmwareVersion &&
+            !isPreV1Firmware(midiState.firmwareVersion)
+        ) {
+            logger.info(
+                `Device reconnected with firmware ${midiState.firmwareVersion}, closing legacy upgrade dialog`,
+            );
+            handleDismiss();
+        }
+    });
+
     // On disconnect, reset so the prompt can show again for the next device.
     // Entering UF2 downloader mode disconnects the device, so don't reset
     // while the dialog is open — the user still needs the instructions.
