@@ -14,7 +14,7 @@
 
 import { createLogger } from '$lib/utils/logger';
 import type { ProcessedAudio } from './audioProcessor';
-import { captureOnset } from './onsetDetector';
+import { resampleLinear, floatTo16BitPcm } from './audioAnalysis';
 
 const logger = createLogger('AudioRecorder');
 
@@ -28,45 +28,13 @@ export interface RecordingOptions {
    * If not provided, uses the default microphone.
    */
   deviceId?: string;
-
-  /**
-   * Optional threshold level (0-1) for automatic onset-triggered recording.
-   * When provided, recording will arm and wait until the level crosses this threshold,
-   * then capture exactly 1 second including optional pre-roll.
-   */
-  threshold?: number;
-
-  /**
-   * Optional pre-roll time in milliseconds included before the trigger point.
-   * Defaults to 120ms. The post-trigger capture length is reduced accordingly
-   * so the total captured length remains 1 second.
-   */
-  preRollMs?: number;
-
-  /**
-   * Minimum time in microseconds the signal must stay above threshold to trigger.
-   * Defaults to 500 microseconds.
-   */
-  holdUs?: number;
-
-  /**
-   * Timeout in milliseconds while waiting for a trigger before aborting.
-   * Defaults to 10000ms.
-   */
-  timeoutMs?: number;
-
-  /**
-   * Optional high-pass filter cutoff in Hz to reduce low-frequency rumble.
-   * Defaults to 80Hz.
-   */
-  highpassHz?: number;
 }
 
 export interface RecordingProgress {
   /**
    * Recording stage: 'requesting' | 'waiting' | 'recording' | 'processing'
    */
-  stage: 'requesting' | 'waiting' | 'recording' | 'processing';
+  stage: 'requesting' | 'recording' | 'processing';
 
   /**
    * Progress percentage (0-100)
@@ -109,86 +77,24 @@ export async function recordAudio(
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     logger.debug('Microphone access granted');
 
-    if (typeof options.threshold === 'number') {
-      // Onset-triggered recording path (wait for threshold then capture 1s incl. pre-roll)
-      onProgress?.({ stage: 'waiting', percentage: 0 });
+    onProgress?.({ stage: 'recording', percentage: 0 });
 
-      const preRollMs = Math.max(0, Math.floor(options.preRollMs ?? 120));
-      const captureMs = Math.max(1, 1000 - preRollMs);
+    const audioBlob = await recordForDuration(stream, RECORDING_DURATION_MS, onProgress);
+    logger.debug(`Recorded ${audioBlob.size} bytes`);
 
-      const { samples, sampleRate } = await captureOnset(stream, {
-        threshold: options.threshold,
-        preRollMs,
-        holdUs: Math.max(0, Math.floor(options.holdUs ?? 500)),
-        timeoutMs: Math.max(1000, Math.floor(options.timeoutMs ?? 10000)),
-        highpassHz: options.highpassHz ?? 80,
-        captureMs
-      });
+    // Stop all tracks
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
 
-      // Stop all tracks
-      stream.getTracks().forEach(track => track.stop());
-      stream = null;
+    // Process the recorded audio
+    onProgress?.({ stage: 'processing', percentage: 90 });
 
-      // Convert to DRUM-compatible format
-      onProgress?.({ stage: 'processing', percentage: 80 });
+    const processedAudio = await processRecording(audioBlob);
+    logger.info('Recording completed successfully');
 
-      let mono = samples;
+    onProgress?.({ stage: 'processing', percentage: 100 });
 
-      if (sampleRate !== TARGET_SAMPLE_RATE) {
-        mono = resample(mono, sampleRate, TARGET_SAMPLE_RATE);
-      }
-
-      // Ensure exactly 1 second (keep leading pre-roll)
-      if (mono.length > MAX_SAMPLES) {
-        mono = mono.slice(0, MAX_SAMPLES);
-      } else if (mono.length < MAX_SAMPLES) {
-        const padded = new Float32Array(MAX_SAMPLES);
-        padded.set(mono, 0);
-        mono = padded;
-      }
-
-      // Convert to 16-bit PCM
-      const pcmBuffer = new ArrayBuffer(mono.length * 2);
-      const pcmView = new DataView(pcmBuffer);
-      for (let i = 0; i < mono.length; i++) {
-        const sample = Math.max(-1, Math.min(1, mono[i]));
-        const intSample = Math.round(sample * 32767);
-        pcmView.setInt16(i * 2, intSample, true);
-      }
-
-      const processedAudio: ProcessedAudio = {
-        pcmData: new Uint8Array(pcmBuffer),
-        sampleRate: TARGET_SAMPLE_RATE,
-        duration: mono.length / TARGET_SAMPLE_RATE,
-        originalFileName: `recording-${Date.now()}.wav`
-      };
-
-      logger.info('Recording completed successfully');
-      onProgress?.({ stage: 'processing', percentage: 100 });
-
-      return processedAudio;
-    } else {
-      // Start fixed-duration recording path
-      onProgress?.({ stage: 'recording', percentage: 0 });
-
-      const audioBlob = await recordForDuration(stream, RECORDING_DURATION_MS, onProgress);
-      logger.debug(`Recorded ${audioBlob.size} bytes`);
-
-      // Stop all tracks
-      stream.getTracks().forEach(track => track.stop());
-      stream = null;
-
-      // Process the recorded audio
-      onProgress?.({ stage: 'processing', percentage: 90 });
-
-      const processedAudio = await processRecording(audioBlob);
-      logger.info('Recording completed successfully');
-
-      onProgress?.({ stage: 'processing', percentage: 100 });
-
-      return processedAudio;
-    }
-
+    return processedAudio;
   } catch (error) {
     // Cleanup on error
     if (stream) {
@@ -313,7 +219,7 @@ async function processRecording(blob: Blob): Promise<ProcessedAudio> {
       let finalData = monoData;
       if (audioBuffer.sampleRate !== TARGET_SAMPLE_RATE) {
         logger.debug(`Resampling from ${audioBuffer.sampleRate}Hz to ${TARGET_SAMPLE_RATE}Hz`);
-        finalData = resample(monoData, audioBuffer.sampleRate, TARGET_SAMPLE_RATE);
+        finalData = resampleLinear(monoData, audioBuffer.sampleRate, TARGET_SAMPLE_RATE);
       }
 
       // Trim or pad to exactly 1 second
@@ -329,26 +235,16 @@ async function processRecording(blob: Blob): Promise<ProcessedAudio> {
       }
 
       // Convert to 16-bit PCM (little-endian)
-      const pcmBuffer = new ArrayBuffer(finalData.length * 2);
-      const pcmView = new DataView(pcmBuffer);
-
-      for (let i = 0; i < finalData.length; i++) {
-        // Clamp to [-1, 1] range
-        const sample = Math.max(-1, Math.min(1, finalData[i]));
-        // Convert to 16-bit integer
-        const intSample = Math.round(sample * 32767);
-        // Write as little-endian
-        pcmView.setInt16(i * 2, intSample, true);
-      }
+      const pcmData = floatTo16BitPcm(finalData);
 
       const duration = finalData.length / TARGET_SAMPLE_RATE;
 
       logger.info(
-        `Processed: ${pcmBuffer.byteLength} bytes, ${TARGET_SAMPLE_RATE}Hz, 16-bit mono, ${duration.toFixed(2)}s`
+        `Processed: ${pcmData.byteLength} bytes, ${TARGET_SAMPLE_RATE}Hz, 16-bit mono, ${duration.toFixed(2)}s`
       );
 
       return {
-        pcmData: new Uint8Array(pcmBuffer),
+        pcmData,
         sampleRate: TARGET_SAMPLE_RATE,
         duration,
         originalFileName: `recording-${Date.now()}.wav`
@@ -365,41 +261,6 @@ async function processRecording(blob: Blob): Promise<ProcessedAudio> {
       `Recording processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
-}
-
-/**
- * Resample audio data using linear interpolation
- *
- * @param inputData - Input audio samples (Float32Array)
- * @param inputSampleRate - Input sample rate
- * @param outputSampleRate - Output sample rate
- * @returns Resampled audio data
- */
-function resample(
-  inputData: Float32Array,
-  inputSampleRate: number,
-  outputSampleRate: number
-): Float32Array {
-  const ratio = inputSampleRate / outputSampleRate;
-  const outputLength = Math.round(inputData.length / ratio);
-  const output = new Float32Array(outputLength);
-
-  for (let i = 0; i < outputLength; i++) {
-    const inputIndex = i * ratio;
-    const inputIndexInt = Math.floor(inputIndex);
-    const fraction = inputIndex - inputIndexInt;
-
-    if (inputIndexInt + 1 < inputData.length) {
-      // Linear interpolation between two samples
-      output[i] =
-        inputData[inputIndexInt] * (1 - fraction) + inputData[inputIndexInt + 1] * fraction;
-    } else {
-      // At the end, just use the last sample
-      output[i] = inputData[inputIndexInt] || 0;
-    }
-  }
-
-  return output;
 }
 
 /**
