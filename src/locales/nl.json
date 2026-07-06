@@ -64,5 +64,15 @@
   "legacy_fw_instructions_step2": "Sleep het gedownloade .uf2-bestand naar de DRUMBOOT-schijf.",
   "legacy_fw_instructions_step3": "Wacht tot je DRUM opnieuw start. Klaar!",
   "legacy_fw_done_button": "Klaar",
-  "legacy_fw_reset_failed": "Dat lukte niet. Kies je DRUM uit de lijst en probeer het nog eens."
+  "legacy_fw_reset_failed": "Dat lukte niet. Kies je DRUM uit de lijst en probeer het nog eens.",
+  "fw_upgrade_title": "Werk je DRUM bij",
+  "fw_upgrade_message": "Je DRUM heeft firmware {version}. Versie {newVersion} staat klaar. Wil je bijwerken?",
+  "fw_upgrade_button": "Firmware bijwerken",
+  "fw_upgrade_not_now_button": "Niet nu",
+  "fw_upgrade_downloading": "Nieuwe firmware ophalen...",
+  "fw_upgrade_uploading": "Update wordt naar je DRUM gestuurd...",
+  "fw_upgrade_keep_connected": "Houd je DRUM aangesloten.",
+  "fw_upgrade_rebooting": "Bijna klaar! Je DRUM start opnieuw op...",
+  "fw_upgrade_done_button": "Klaar",
+  "fw_upgrade_failed": "Dat lukte niet. Controleer je DRUM en probeer het nog eens."
 }

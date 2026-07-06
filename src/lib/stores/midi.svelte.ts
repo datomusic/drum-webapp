@@ -61,6 +61,17 @@ const IDENTITY_RETRY_DELAY_MS = 1000;
 const logger = createLogger('MIDI');
 
 let midiState = $state<MidiState>(initialState);
+
+// Additional SysEx consumers (e.g. the firmware updater waiting for
+// ACK/NACK replies) register here; every incoming SysEx message is
+// dispatched to each listener after the built-in firmware version parsing.
+type SysexListener = (data: Uint8Array) => void;
+const sysexListeners = new Set<SysexListener>();
+
+function addSysexListener(listener: SysexListener): () => void {
+    sysexListeners.add(listener);
+    return () => sysexListeners.delete(listener);
+}
 interface MidiNoteState {
     active: number | null;
     selectedSample: number | null;
@@ -297,6 +308,9 @@ function connectDevice(deviceId: string) {
                         } else {
                             logger.debug('Failed to parse firmware version from SysEx', 'sysex');
                         }
+                        for (const listener of sysexListeners) {
+                            listener(data);
+                        }
                     } else {
                         logger.debug('Regular MIDI message, handling as note...', 'midi');
                         handleMidiNoteMessage(data);
@@ -416,4 +430,5 @@ export {
     requestIdentity,
     rebootToBootloader,
     ignoreFirmwareUpdate,
+    addSysexListener,
 };

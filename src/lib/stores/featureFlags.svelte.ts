@@ -9,11 +9,13 @@ const STORAGE_KEY = 'dato-feature-flags';
 interface FeatureFlags {
   sampleRecorder: boolean;
   legacyFirmwareUpgrade: boolean;
+  sysexFirmwareUpgrade: boolean;
 }
 
 const defaults: FeatureFlags = {
   sampleRecorder: false,
-  legacyFirmwareUpgrade: false
+  legacyFirmwareUpgrade: false,
+  sysexFirmwareUpgrade: false
 };
 
 function loadFlags(): FeatureFlags {
