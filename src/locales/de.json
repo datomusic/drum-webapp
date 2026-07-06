@@ -53,5 +53,16 @@
   "recorder_play": "Abspielen",
   "recorder_again": "Nochmal aufnehmen",
   "recorder_save": "Auf DRUM speichern",
-  "recorder_saving": "Speichert..."
+  "recorder_saving": "Speichert...",
+  "legacy_fw_title": "Aktualisiere deine DRUM",
+  "legacy_fw_message": "Deine DRUM hat alte Firmware ({version}). Eine neue Version ist da. Willst du aktualisieren?",
+  "legacy_fw_upgrade_button": "Firmware aktualisieren",
+  "legacy_fw_not_now_button": "Jetzt nicht",
+  "legacy_fw_working": "Deine DRUM wird vorbereitet...",
+  "legacy_fw_instructions_downloaded": "Deine DRUM ist jetzt im Update-Modus. Die neue Firmware-Datei ist in deinem Downloads-Ordner.",
+  "legacy_fw_instructions_step1": "Suche auf deinem Computer nach einem Laufwerk namens 'DRUMBOOT'.",
+  "legacy_fw_instructions_step2": "Ziehe die heruntergeladene .uf2-Datei auf das DRUMBOOT-Laufwerk.",
+  "legacy_fw_instructions_step3": "Warte, bis deine DRUM neu startet. Fertig!",
+  "legacy_fw_done_button": "Fertig",
+  "legacy_fw_reset_failed": "Das hat nicht geklappt. Wähle deine DRUM aus der Liste und versuche es nochmal."
 }

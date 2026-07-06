@@ -2,17 +2,17 @@
 
 /**
  * Parses a Dato DRUM firmware version string into its components.
- * Expected format: "major.minor.patch" or "major.minor.patch-dev.commits"
- * Examples: "1.0.0", "1.0.0-dev.10"
+ * Expected format: "major.minor.patch" with an optional "-dev.N" or "-rc.N" suffix
+ * Examples: "1.0.0", "1.0.0-dev.10", "1.0.0-rc.1"
  * @param versionString The version string to parse.
- * @returns An object with major, minor, patch as numbers, and optional commits as a number, or null if parsing fails.
+ * @returns An object with major, minor, patch as numbers, and an optional suffix (channel + number), or null if parsing fails.
  */
-function parseFirmwareVersion(versionString: string): { major: number; minor: number; patch: number; commits?: number } | null {
+function parseFirmwareVersion(versionString: string): { major: number; minor: number; patch: number; channel?: 'rc' | 'dev'; build?: number } | null {
     // Remove 'v' prefix if present (e.g., "v0.8.3" -> "0.8.3")
     const cleanVersion = versionString.replace(/^v/, '');
 
-    // Regex to match "X.Y.Z" or "X.Y.Z-dev.C" where X, Y, Z, C are digits
-    const regex = /(\d+)\.(\d+)\.(\d+)(?:-dev\.(\d+))?$/;
+    // Regex to match "X.Y.Z", "X.Y.Z-dev.N" or "X.Y.Z-rc.N" where X, Y, Z, N are digits
+    const regex = /(\d+)\.(\d+)\.(\d+)(?:-(dev|rc)\.(\d+))?$/;
     const match = cleanVersion.match(regex);
 
     if (match) {
@@ -21,9 +21,9 @@ function parseFirmwareVersion(versionString: string): { major: number; minor: nu
             minor: parseInt(match[2], 10),
             patch: parseInt(match[3], 10),
         };
-        // Check if the optional -dev.commits part was captured
+        // Check if the optional -dev.N / -rc.N part was captured
         if (match[4] !== undefined) {
-            return { ...parsed, commits: parseInt(match[4], 10) };
+            return { ...parsed, channel: match[4] as 'rc' | 'dev', build: parseInt(match[5], 10) };
         }
         return parsed;
     }
@@ -31,9 +31,30 @@ function parseFirmwareVersion(versionString: string): { major: number; minor: nu
 }
 
 /**
+ * Checks whether a device firmware version predates v1.0.0.
+ * Pre-v1.0.0 devices lack the MIDI SysEx firmware upgrade mechanism and must
+ * be updated via the RP2350 UF2 downloader (BOOTSEL) mode.
+ * @param versionString The device firmware version, or null if not (yet) known.
+ * @returns True only when the version is known and its major version is 0.
+ */
+export function isPreV1Firmware(versionString: string | null): boolean {
+    if (!versionString) return false;
+    const parsed = parseFirmwareVersion(versionString);
+    if (!parsed) return false;
+    return parsed.major < 1;
+}
+
+// Ordering of suffix channels when major.minor.patch are identical:
+// rc.N is a pre-release (older than the plain release), while dev.N counts
+// commits past the release (newer than the plain release, existing convention).
+const CHANNEL_RANK: Record<string, number> = { rc: 0, dev: 2 };
+const RELEASE_RANK = 1;
+
+/**
  * Compares two Dato DRUM firmware version strings to determine if the `newVersion` is newer than the `currentVersion`.
- * Handles "major.minor.patch" and "major.minor.patch-dev.commits" formats.
- * A version with `-dev.commits` is considered newer than one without, if major.minor.patch are identical.
+ * Handles "major.minor.patch" and "major.minor.patch-dev.N" / "-rc.N" formats.
+ * With identical major.minor.patch: rc.N < release < dev.N, and same-channel
+ * suffixes compare by their number.
  * @param currentVersion The current firmware version string (e.g., from the device). Can be null if unknown.
  * @param newVersion The new firmware version string (e.g., the latest available).
  * @returns True if `newVersion` is strictly newer than `currentVersion`, false otherwise.
@@ -67,18 +88,16 @@ export function isNewerVersion(currentVersion: string | null, newVersion: string
     if (parsedNew.patch > parsedCurrent.patch) return true;
     if (parsedNew.patch < parsedCurrent.patch) return false;
 
-    // If major.minor.patch are identical, compare the -dev.commits part
-    // A version with commits is considered newer than one without.
-    if (parsedNew.commits !== undefined && parsedCurrent.commits === undefined) {
-        return true; // e.g., 1.0.0-dev.10 is newer than 1.0.0
-    }
-    if (parsedNew.commits === undefined && parsedCurrent.commits !== undefined) {
-        return false; // e.g., 1.0.0 is NOT newer than 1.0.0-dev.10
-    }
-    if (parsedNew.commits !== undefined && parsedCurrent.commits !== undefined) {
-        // Both have commits, compare them
-        if (parsedNew.commits > parsedCurrent.commits) return true;
-        if (parsedNew.commits < parsedCurrent.commits) return false;
+    // If major.minor.patch are identical, compare the suffix channels
+    const newRank = parsedNew.channel ? CHANNEL_RANK[parsedNew.channel] : RELEASE_RANK;
+    const currentRank = parsedCurrent.channel ? CHANNEL_RANK[parsedCurrent.channel] : RELEASE_RANK;
+    if (newRank > currentRank) return true; // e.g., 1.0.0 is newer than 1.0.0-rc.1
+    if (newRank < currentRank) return false; // e.g., 1.0.0-rc.1 is NOT newer than 1.0.0
+
+    // Same channel: compare the suffix numbers
+    if (parsedNew.build !== undefined && parsedCurrent.build !== undefined) {
+        if (parsedNew.build > parsedCurrent.build) return true;
+        if (parsedNew.build < parsedCurrent.build) return false;
     }
 
     // Versions are identical or newVersion is older/same

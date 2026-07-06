@@ -5,7 +5,6 @@
         requestMidiAccess,
         connectDevice,
         disconnectDevice,
-        requestIdentity,
         rebootToBootloader,
         ignoreFirmwareUpdate,
     } from "$lib/stores/midi.svelte";
@@ -159,37 +158,6 @@
         }
     });
 
-    // Effect to request identity when connected and firmware version is not yet known
-    $effect(() => {
-        if (
-            midiState.isConnected &&
-            midiState.selectedOutput &&
-            !midiState.firmwareVersion
-        ) {
-            logger.debug(
-                "Device connected but no firmware version yet, requesting identity...",
-                "firmware",
-            );
-
-            // Request identity immediately
-            requestIdentity();
-
-            // Also try again after a short delay in case the device needs time
-            setTimeout(() => {
-                if (
-                    midiState.isConnected &&
-                    midiState.selectedOutput &&
-                    !midiState.firmwareVersion
-                ) {
-                    logger.debug(
-                        "Retrying identity request after delay...",
-                        "firmware",
-                    );
-                    requestIdentity();
-                }
-            }, 1000);
-        }
-    });
 </script>
 
 <section

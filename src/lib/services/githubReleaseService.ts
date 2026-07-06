@@ -9,14 +9,19 @@ interface GitHubAsset {
 interface GitHubRelease {
 	tag_name: string;
 	name: string;
+	draft: boolean;
+	prerelease: boolean;
 	assets: GitHubAsset[];
 }
 
 /**
- * Fetches the latest firmware release from GitHub
+ * Fetches the latest firmware release from GitHub that actually contains a
+ * firmware asset. Includes prereleases (e.g., v1.0.0-rc.1), which the
+ * `/releases/latest` endpoint would skip. Some releases carry no .uf2 asset,
+ * so walk the list (newest first) until one has a usable firmware file.
  */
 export async function fetchLatestFirmwareRelease(): Promise<GitHubRelease> {
-	const response = await fetch('https://api.github.com/repos/datomusic/drum-firmware/releases/latest', {
+	const response = await fetch('https://api.github.com/repos/datomusic/drum-firmware/releases?per_page=10', {
 		headers: {
 			'Accept': 'application/vnd.github.v3+json',
 			'User-Agent': 'drum-webapp'
@@ -27,7 +32,13 @@ export async function fetchLatestFirmwareRelease(): Promise<GitHubRelease> {
 		throw new Error(`GitHub API request failed with status ${response.status}`);
 	}
 
-	const release = await response.json() as GitHubRelease;
+	const releases = await response.json() as GitHubRelease[];
+	const release = releases.find((r) => !r.draft && findFirmwareAsset(r.assets));
+
+	if (!release) {
+		throw new Error('No release with a firmware asset found');
+	}
+
 	return release;
 }
 
@@ -35,8 +46,9 @@ export async function fetchLatestFirmwareRelease(): Promise<GitHubRelease> {
  * Finds the firmware UF2 asset from a release
  */
 export function findFirmwareAsset(assets: GitHubAsset[]): GitHubAsset | null {
-	// Match semver pattern first (e.g., "drum-v0.9.0.uf2" or "drum-0.9.0.uf2")
-	const semverPattern = /^drum-v?\d+\.\d+\.\d+\.uf2$/;
+	// Match semver pattern first, including prerelease suffixes
+	// (e.g., "drum-v0.9.0.uf2", "drum-0.9.0.uf2", "drum-1.0.0-rc.1.uf2")
+	const semverPattern = /^drum-v?\d+\.\d+\.\d+(?:-(?:rc|dev)\.\d+)?\.uf2$/;
 	let semverAsset = assets.find(asset => semverPattern.test(asset.name));
 	if (semverAsset) {
 		return semverAsset;
