@@ -53,5 +53,17 @@
   "recorder_play": "Afspelen",
   "recorder_again": "Opnieuw opnemen",
   "recorder_save": "Opslaan op DRUM",
-  "recorder_saving": "Opslaan..."
+  "recorder_saving": "Opslaan...",
+  "legacy_fw_title": "Update je DRUM",
+  "legacy_fw_message": "Je DRUM heeft oude firmware ({version}). Er is een nieuwe versie. Wil je updaten?",
+  "legacy_fw_upgrade_button": "Firmware updaten",
+  "legacy_fw_not_now_button": "Niet nu",
+  "legacy_fw_working": "Je DRUM wordt klaargemaakt...",
+  "legacy_fw_instructions_downloaded": "Je DRUM staat nu in update-modus. Het nieuwe firmwarebestand staat in je Downloads-map.",
+  "legacy_fw_instructions_step1": "Zoek op je computer naar een schijf met de naam 'DRUMBOOT'.",
+  "legacy_fw_instructions_step2": "Sleep het gedownloade .uf2-bestand naar de DRUMBOOT-schijf.",
+  "legacy_fw_instructions_step3": "Wacht tot je DRUM opnieuw start. Klaar!",
+  "legacy_fw_done_button": "Klaar",
+  "legacy_fw_serial_not_supported": "Oeps! Je browser kan dit niet. Probeer Chrome of Edge.",
+  "legacy_fw_reset_failed": "Dat lukte niet. Kies je DRUM uit de lijst en probeer het nog eens."
 }

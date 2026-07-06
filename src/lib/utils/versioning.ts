@@ -31,6 +31,20 @@ function parseFirmwareVersion(versionString: string): { major: number; minor: nu
 }
 
 /**
+ * Checks whether a device firmware version predates v1.0.0.
+ * Pre-v1.0.0 devices lack the MIDI SysEx firmware upgrade mechanism and must
+ * be updated via the RP2350 UF2 downloader (BOOTSEL) mode.
+ * @param versionString The device firmware version, or null if not (yet) known.
+ * @returns True only when the version is known and its major version is 0.
+ */
+export function isPreV1Firmware(versionString: string | null): boolean {
+    if (!versionString) return false;
+    const parsed = parseFirmwareVersion(versionString);
+    if (!parsed) return false;
+    return parsed.major < 1;
+}
+
+/**
  * Compares two Dato DRUM firmware version strings to determine if the `newVersion` is newer than the `currentVersion`.
  * Handles "major.minor.patch" and "major.minor.patch-dev.commits" formats.
  * A version with `-dev.commits` is considered newer than one without, if major.minor.patch are identical.
