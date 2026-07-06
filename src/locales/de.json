@@ -39,5 +39,19 @@
   "audio_input_label": "Audio-Eingang: {deviceName}",
   "recording_not_supported": "Aufnahme wird in diesem Browser nicht unterstützt",
   "recording_button_title": "1 Sekunde Audio aufnehmen",
-  "recording_button_title_active": "Aufnahme läuft..."
+  "recording_button_title_active": "Aufnahme läuft...",
+  "recorder_title": "Nimm einen Klang auf",
+  "recorder_start_mic": "Mikrofon einschalten",
+  "recorder_choose_mic": "Wähle dein Mikrofon:",
+  "recorder_unknown_mic": "Mikrofon",
+  "recorder_record": "Aufnehmen",
+  "recorder_recording": "Aufnahme läuft...",
+  "recorder_trim_start": "Anfang",
+  "recorder_trim_end": "Ende",
+  "recorder_quieter": "Leiser",
+  "recorder_louder": "Lauter",
+  "recorder_play": "Abspielen",
+  "recorder_again": "Nochmal aufnehmen",
+  "recorder_save": "Auf DRUM speichern",
+  "recorder_saving": "Speichert..."
 }

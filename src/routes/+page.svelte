@@ -2,7 +2,9 @@
     import { _ } from "svelte-i18n"; // Only need _ for translation, locale is handled in layout
     import SampleTable from "$lib/components/SampleTable.svelte";
     import DeviceConnection from "$lib/components/DeviceConnection.svelte";
+    import SampleRecorder from "$lib/components/SampleRecorder.svelte";
     import { midiState } from "$lib/stores/midi.svelte";
+    import { featureFlags } from "$lib/stores/featureFlags.svelte";
 </script>
 
 {#if !midiState.isConnected}
@@ -11,4 +13,7 @@
     </div>
 {:else}
     <SampleTable />
+    {#if featureFlags.sampleRecorder}
+        <SampleRecorder />
+    {/if}
 {/if}
