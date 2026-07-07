@@ -20,6 +20,14 @@
     samples[selectedSampleIndex]?.midiNoteNumber,
   );
 
+  // Dim this track when a note on another track is selected
+  let isDimmed = $derived(
+    midiNoteState.selectedSample !== null &&
+      !samples.some(
+        (sample) => sample.midiNoteNumber === midiNoteState.selectedSample,
+      ),
+  );
+
   const voiceIcons = [
     "pad_kick.svg",
     "pad_snare.svg",
@@ -85,7 +93,7 @@
   });
 </script>
 
-<div class="track" bind:clientWidth={containerWidthPx}>
+<div class="track" class:dimmed={isDimmed} bind:clientWidth={containerWidthPx}>
   <!-- Button strip: absolutely positioned so it can slide offscreen -->
   <div
     class="button-strip"
@@ -122,6 +130,11 @@
     grid-template-rows: auto;
     justify-items: center;
     margin-bottom: var(--track-gap);
+    transition: opacity 350ms ease-out;
+  }
+
+  .track.dimmed {
+    opacity: 0.35;
   }
 
   .button-strip {
