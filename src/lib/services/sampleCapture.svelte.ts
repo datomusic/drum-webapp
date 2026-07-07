@@ -28,6 +28,7 @@ export class SampleCapture {
   sampleRate = 44100;
 
   private audioContext: AudioContext | null = null;
+  private playbackContext: AudioContext | null = null;
   private mediaStream: MediaStream | null = null;
   private workletNode: AudioWorkletNode | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
@@ -97,11 +98,29 @@ export class SampleCapture {
     });
   }
 
-  /** Discard the current recording and go back to live monitoring. */
+  /**
+   * Load an externally sourced buffer (browsed file, factory sample) as if it
+   * had been recorded, so it can be trimmed and played back. Works without an
+   * open microphone stream.
+   */
+  load(samples: Float32Array, sampleRate: number): void {
+    if (!this.audioContext) {
+      this.sampleRate = sampleRate;
+    } else if (sampleRate !== this.sampleRate) {
+      throw new Error(`Sample rate mismatch: ${sampleRate} vs ${this.sampleRate}`);
+    }
+    this.recorded = samples;
+    this.status = 'recorded';
+  }
+
+  /**
+   * Discard the current recording and go back to live monitoring, or to idle
+   * when no microphone stream is open.
+   */
   reset(): void {
     this.recorded = null;
     if (this.status === 'recorded') {
-      this.status = 'monitoring';
+      this.status = this.audioContext ? 'monitoring' : 'idle';
     }
   }
 
@@ -110,14 +129,18 @@ export class SampleCapture {
     return this.readRingTail(Math.floor(seconds * this.sampleRate));
   }
 
-  /** Play back a buffer of samples through the capture context. */
+  /**
+   * Play back a buffer of samples through the capture context, or a dedicated
+   * playback context when the microphone is not open.
+   */
   play(samples: Float32Array): void {
-    if (!this.audioContext || samples.length === 0) return;
-    const buffer = this.audioContext.createBuffer(1, samples.length, this.sampleRate);
+    if (samples.length === 0) return;
+    const ctx = this.audioContext ?? (this.playbackContext ??= new AudioContext());
+    const buffer = ctx.createBuffer(1, samples.length, this.sampleRate);
     buffer.copyToChannel(samples, 0);
-    const source = this.audioContext.createBufferSource();
+    const source = ctx.createBufferSource();
     source.buffer = buffer;
-    source.connect(this.audioContext.destination);
+    source.connect(ctx.destination);
     source.start();
   }
 
@@ -132,6 +155,8 @@ export class SampleCapture {
     this.mediaStream = null;
     this.audioContext?.close();
     this.audioContext = null;
+    this.playbackContext?.close();
+    this.playbackContext = null;
     this.onCaptureComplete = null;
     this.status = 'idle';
   }

@@ -41,17 +41,13 @@
   "recording_button_title": "1 Sekunde Audio aufnehmen",
   "recording_button_title_active": "Aufnahme läuft...",
   "recorder_title": "Nimm einen Klang auf",
-  "recorder_start_mic": "Mikrofon einschalten",
   "recorder_choose_mic": "Wähle dein Mikrofon:",
   "recorder_unknown_mic": "Mikrofon",
   "recorder_record": "Aufnehmen",
   "recorder_recording": "Aufnahme läuft...",
-  "recorder_trim_start": "Anfang",
-  "recorder_trim_end": "Ende",
   "recorder_quieter": "Leiser",
   "recorder_louder": "Lauter",
   "recorder_play": "Abspielen",
-  "recorder_again": "Nochmal aufnehmen",
   "recorder_save": "Auf DRUM speichern",
   "recorder_saving": "Speichert...",
   "legacy_fw_title": "Aktualisiere deine DRUM",
@@ -74,5 +70,6 @@
   "fw_upgrade_keep_connected": "Lass deine DRUM angeschlossen.",
   "fw_upgrade_rebooting": "Fast fertig! Deine DRUM startet neu...",
   "fw_upgrade_done_button": "Fertig",
-  "fw_upgrade_failed": "Das hat nicht geklappt. Prüfe deine DRUM und versuche es nochmal."
+  "fw_upgrade_failed": "Das hat nicht geklappt. Prüfe deine DRUM und versuche es nochmal.",
+  "recorder_no_factory_sample": "Kein Werksound für dieses Pad"
 }

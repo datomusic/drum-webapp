@@ -41,17 +41,13 @@
   "recording_button_title": "Neem 1 seconde audio op",
   "recording_button_title_active": "Opname bezig...",
   "recorder_title": "Neem een geluid op",
-  "recorder_start_mic": "Microfoon aanzetten",
   "recorder_choose_mic": "Kies je microfoon:",
   "recorder_unknown_mic": "Microfoon",
   "recorder_record": "Opnemen",
   "recorder_recording": "Opname loopt...",
-  "recorder_trim_start": "Begin",
-  "recorder_trim_end": "Einde",
   "recorder_quieter": "Zachter",
   "recorder_louder": "Harder",
   "recorder_play": "Afspelen",
-  "recorder_again": "Opnieuw opnemen",
   "recorder_save": "Opslaan op DRUM",
   "recorder_saving": "Opslaan...",
   "legacy_fw_title": "Update je DRUM",
@@ -74,5 +70,6 @@
   "fw_upgrade_keep_connected": "Houd je DRUM aangesloten.",
   "fw_upgrade_rebooting": "Bijna klaar! Je DRUM start opnieuw op...",
   "fw_upgrade_done_button": "Klaar",
-  "fw_upgrade_failed": "Dat lukte niet. Controleer je DRUM en probeer het nog eens."
+  "fw_upgrade_failed": "Dat lukte niet. Controleer je DRUM en probeer het nog eens.",
+  "recorder_no_factory_sample": "Geen fabrieksgeluid voor deze pad"
 }
