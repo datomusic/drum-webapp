@@ -71,5 +71,12 @@
   "fw_upgrade_rebooting": "Fast fertig! Deine DRUM startet neu...",
   "fw_upgrade_done_button": "Fertig",
   "fw_upgrade_failed": "Das hat nicht geklappt. Prüfe deine DRUM und versuche es nochmal.",
-  "recorder_no_factory_sample": "Kein Werksound für dieses Pad"
+  "recorder_no_factory_sample": "Kein Werksound für dieses Pad",
+  "download_reading": "Lesen...",
+  "download_empty_slot": "Leeres Pad",
+  "download_failed": "Lesen fehlgeschlagen",
+  "download_timeout": "Keine Antwort vom DRUM",
+  "settings_title": "Einstellungen",
+  "settings_close": "Schließen",
+  "settings_not_connected": "Kein DRUM verbunden"
 }
