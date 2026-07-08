@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { onDestroy } from 'svelte';
+  import { onDestroy, untrack } from 'svelte';
   import { _ } from 'svelte-i18n';
   import {
     audioInputState,
     initialize as initializeAudioInput,
-    requestPermission,
-    selectDevice
+    requestPermission
   } from '$lib/stores/audioInput.svelte';
   import { midiNoteState } from '$lib/stores/midi.svelte';
   import { sampleUploadStore } from '$lib/stores/sampleUpload';
+  import { downloadState, downloadSample, cancelDownload } from '$lib/stores/sampleDownload.svelte';
   import { SampleCapture } from '$lib/services/sampleCapture.svelte';
   import {
     computeEnvelope,
@@ -32,6 +32,11 @@
   let trimEndMs = $state(1000);
   let errorMessage = $state<string | null>(null);
   let isSaving = $state(false);
+
+  let isDownloading = $derived(downloadState.status === 'downloading');
+
+  // Track which slot we last downloaded so we don't re-download on every trigger
+  let lastDownloadedSlot: number | null = null;
 
   let recordedDurationMs = $derived(
     capture.recorded ? Math.floor((capture.recorded.length / capture.sampleRate) * 1000) : 0
@@ -224,19 +229,68 @@
     capture.play(getSelection());
   }
 
-  async function onDeviceChange(event: Event) {
-    const deviceId = (event.currentTarget as HTMLSelectElement).value;
-    selectDevice(deviceId);
-    if (capture.status === 'monitoring' || capture.status === 'recording') {
-      try {
-        await capture.open(deviceId);
-      } catch (error) {
-        errorMessage = error instanceof Error ? error.message : String(error);
+  // Auto-download sample from device when a new note is selected
+  $effect(() => {
+    const slot = midiNoteState.selectedSample;
+    if (slot === null) return;
+
+    // Only download when the slot actually changed
+    if (slot === lastDownloadedSlot) return;
+    lastDownloadedSlot = slot;
+
+    // Don't download while recording or saving
+    untrack(() => {
+      if (capture.status === 'recording' || isSaving) return;
+
+      // Reset capture to prepare for downloaded sample
+      capture.reset();
+      errorMessage = null;
+
+      downloadSample(slot).then((result) => {
+        if (result && result.samples.length > 0) {
+          // Resample if the capture's audio context uses a different rate
+          let samples = result.samples;
+          let rate = result.sampleRate;
+          if (rate !== capture.sampleRate) {
+            samples = resampleLinear(samples, rate, capture.sampleRate);
+            rate = capture.sampleRate;
+          }
+
+          // Load the downloaded sample into the capture buffer
+          capture.load(samples, rate);
+          gainDb = 0;
+
+          // Set trim to full sample
+          const durationMs = Math.floor((samples.length / rate) * 1000);
+          trimStartMs = 0;
+          trimEndMs = Math.min(durationMs, MAX_SELECTION_S * 1000);
+
+          logger.info(`Loaded downloaded sample for slot ${slot} into buffer`);
+        } else if (downloadState.status === 'empty') {
+          logger.info(`Slot ${slot} is empty on device`);
+        }
+      }).catch((error) => {
+        // Errors are already logged and stored in downloadState
+        logger.debug(`Download effect error for slot ${slot}: ${error}`);
+      });
+    });
+  });
+
+  // Reopen the capture stream when the microphone selection changes (in the
+  // settings modal) while the stream is live
+  $effect(() => {
+    const deviceId = audioInputState.selectedDeviceId;
+    untrack(() => {
+      if (deviceId && (capture.status === 'monitoring' || capture.status === 'recording')) {
+        capture.open(deviceId).catch((error) => {
+          errorMessage = error instanceof Error ? error.message : String(error);
+        });
       }
-    }
-  }
+    });
+  });
 
   onDestroy(() => {
+    cancelDownload();
     capture.close();
   });
 </script>
@@ -245,6 +299,10 @@
 
   {#if errorMessage}
     <p class="rounded bg-red-100 p-2 text-red-800">{errorMessage}</p>
+  {/if}
+
+  {#if downloadState.status === 'error' && downloadState.error}
+    <p class="rounded bg-red-100 p-2 text-red-800">{$_('download_failed')}: {downloadState.error}</p>
   {/if}
 
   <div class="flex items-stretch gap-3">
@@ -273,9 +331,9 @@
     <button
       class="h-20 w-20 self-center rounded-full bg-red-600 text-lg font-bold text-white disabled:opacity-50"
       onclick={onRecordClick}
-      disabled={capture.status === 'recording'}
+      disabled={capture.status === 'recording' || isDownloading}
     >
-      {capture.status === 'recording' ? $_('recorder_recording') : $_('recorder_record')}
+      {capture.status === 'recording' ? $_('recorder_recording') : isDownloading ? $_('download_reading') : $_('recorder_record')}
     </button>
     <WaveformDisplay
       {capture}
@@ -313,29 +371,13 @@
         onclick={saveToDevice}
         disabled={capture.status !== 'recorded' ||
           midiNoteState.selectedSample === null ||
-          isSaving}
+          isSaving ||
+          isDownloading}
       >
         {isSaving ? $_('recorder_saving') : $_('recorder_save')}
       </button>
     </div>
   </div>
-
-  {#if capture.status !== 'idle'}
-    {#if audioInputState.devices.length > 1}
-      <label class="flex flex-col gap-1 text-sm">
-        {$_('recorder_choose_mic')}
-        <select
-          class="rounded border p-2"
-          value={audioInputState.selectedDeviceId}
-          onchange={onDeviceChange}
-        >
-          {#each audioInputState.devices as device (device.deviceId)}
-            <option value={device.deviceId}>{device.label || $_('recorder_unknown_mic')}</option>
-          {/each}
-        </select>
-      </label>
-    {/if}
-  {/if}
 
   <input
     bind:this={fileInput}
