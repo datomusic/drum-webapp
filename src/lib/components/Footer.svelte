@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { _, locale } from "svelte-i18n";
-	import { midiState, disconnectDevice } from "$lib/stores/midi.svelte";
+	import { midiState } from "$lib/stores/midi.svelte";
 	import { audioInputState, selectDevice } from "$lib/stores/audioInput.svelte";
 
 	const showLanguageAndAudioInput = false;
@@ -99,24 +99,6 @@
 						</div>
 					{/if}
 				</div>
-			{/if}
-			{#if midiState.isConnected}
-				<button
-					class="flex items-center gap-2 text-sm hover:text-gray-800 transition-colors"
-					onclick={disconnectDevice}
-					title={$_("device_connected_status", {
-						values: {
-							deviceName: midiState.selectedOutput?.name || "Dato DRUM",
-						},
-					}) +
-						" - " +
-						$_("device_disconnect_button")}
-				>
-					<span class="hidden sm:inline">
-						{$_("connected")}{#if midiState.firmwareVersion}
-							({midiState.firmwareVersion}){/if}
-					</span>
-				</button>
 			{/if}
 		</div>
 	</div>

@@ -3,6 +3,8 @@
   import { colorFilters } from "$lib/stores/colorFilters";
   import { isDraggingOverWindow } from "$lib/stores/dragDropStore";
   import { sampleUploadStore, uploadQueue } from "$lib/stores/sampleUpload";
+  import { downloadState } from "$lib/stores/sampleDownload.svelte";
+  import { isTransferActive } from "$lib/services/sdsProtocol";
   import { isAudioFile } from "$lib/services/audioProcessor";
   import {
     recordAudio,
@@ -14,7 +16,6 @@
     requestPermission,
   } from "$lib/stores/audioInput.svelte";
   import { createLogger } from "$lib/utils/logger";
-  import { FACTORY_SAMPLES } from "$lib/config/factorySamples";
 
   const logger = createLogger("Voice");
 
@@ -197,6 +198,19 @@
       return;
     }
 
+    // Check for concurrent download
+    if (isTransferActive()) {
+      uploadStatus = "error";
+      uploadError = "Transfer in progress";
+      logger.error("Cannot upload: another SDS transfer is active");
+
+      setTimeout(() => {
+        uploadStatus = "idle";
+        uploadError = null;
+      }, 3000);
+      return;
+    }
+
     try {
       uploadStatus = "uploading";
       logger.info(`Uploading ${file.name} to slot ${midiNoteNumber}`);
@@ -217,112 +231,6 @@
       uploadStatus = "error";
       uploadError = error instanceof Error ? error.message : "Upload failed";
       logger.error(`Upload failed: ${uploadError}`);
-
-      // Reset error after 3 seconds
-      setTimeout(() => {
-        uploadStatus = "idle";
-        uploadError = null;
-      }, 3000);
-    }
-  }
-
-  // File input handler for browse button
-  let fileInput: HTMLInputElement;
-
-  function handleBrowseClick() {
-    fileInput?.click();
-  }
-
-  async function handleFileSelect(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const files = input.files;
-    if (!files || files.length === 0) {
-      return;
-    }
-
-    // Simulate drop event
-    const file = files[0];
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-
-    await handleDrop({
-      preventDefault: () => {},
-      dataTransfer,
-    } as DragEvent);
-
-    // Reset input
-    input.value = "";
-  }
-
-  // Reset to factory sample
-  async function handleResetClick() {
-    // Check MIDI connection
-    if (!midiState.isConnected) {
-      uploadStatus = "error";
-      uploadError = "MIDI not connected";
-      logger.error("Cannot reset: MIDI device not connected");
-
-      // Reset error after 3 seconds
-      setTimeout(() => {
-        uploadStatus = "idle";
-        uploadError = null;
-      }, 3000);
-      return;
-    }
-
-    // Check if we have a factory sample for this note
-    const factorySampleFilename = FACTORY_SAMPLES[midiNoteNumber];
-    if (!factorySampleFilename) {
-      uploadStatus = "error";
-      uploadError = "No factory sample";
-      logger.error(`No factory sample defined for MIDI note ${midiNoteNumber}`);
-
-      // Reset error after 3 seconds
-      setTimeout(() => {
-        uploadStatus = "idle";
-        uploadError = null;
-      }, 3000);
-      return;
-    }
-
-    try {
-      uploadStatus = "uploading";
-      logger.info(`Loading factory sample for slot ${midiNoteNumber}`);
-
-      // Fetch factory sample
-      const response = await fetch(`/factory_kit/${factorySampleFilename}`);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to load factory sample: ${response.statusText}`,
-        );
-      }
-
-      // Create File object from response
-      const blob = await response.blob();
-      const file = new File([blob], factorySampleFilename, {
-        type: "audio/wav",
-      });
-
-      logger.info(
-        `Uploading factory sample ${factorySampleFilename} to slot ${midiNoteNumber}`,
-      );
-
-      // Upload via existing upload system
-      await sampleUploadStore.quickUpload(file, midiNoteNumber);
-
-      uploadStatus = "success";
-      logger.info(
-        `Successfully reset slot ${midiNoteNumber} to factory sample`,
-      );
-
-      // Reset success indicator after 2 seconds
-      setTimeout(() => {
-        uploadStatus = "idle";
-      }, 2000);
-    } catch (error) {
-      uploadStatus = "error";
-      uploadError = error instanceof Error ? error.message : "Reset failed";
-      logger.error(`Factory reset failed: ${uploadError}`);
 
       // Reset error after 3 seconds
       setTimeout(() => {
@@ -543,46 +451,6 @@
     {/if}
   </button>
 
-  <div class="flex gap-1">
-    <button
-      class="w-8 h-8 bg-red-500 text-white rounded hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
-      style="display: none"
-      aria-label="Record"
-      onclick={handleRecordClick}
-      disabled={recordingStatus !== "idle" || uploadStatus !== "idle"}
-      title={recordingStatus !== "idle"
-        ? "Recording..."
-        : "Record 1 second of audio"}
-    >
-      <img src="icon_record.svg" />
-    </button>
-    <button
-      class="w-8 h-8 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center text-xs cursor-pointer"
-      aria-label="Browse"
-      onclick={handleBrowseClick}
-      title="Browse for audio file"
-    >
-      <img src="icon_browse.svg" />
-    </button>
-    <button
-      class="w-8 h-8 bg-black text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer"
-      aria-label="Reset"
-      onclick={handleResetClick}
-      disabled={recordingStatus !== "idle" || uploadStatus !== "idle"}
-      title="Reset to factory sound"
-    >
-      <img src="icon_reset.svg" />
-    </button>
-  </div>
-
-  <!-- Hidden file input -->
-  <input
-    bind:this={fileInput}
-    type="file"
-    accept="audio/*,.wav,.mp3,.ogg,.flac,.m4a,.aac"
-    style="display: none;"
-    onchange={handleFileSelect}
-  />
 </div>
 
 <style>
