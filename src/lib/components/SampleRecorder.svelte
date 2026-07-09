@@ -303,21 +303,21 @@
     <div class="flex flex-col justify-center gap-1 self-center">
       <button
         class="flex h-8 w-8 cursor-pointer items-center justify-center rounded bg-blue-500 text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label="Browse"
+        aria-label={$_('recorder_browse')}
         onclick={() => fileInput?.click()}
         disabled={capture.status === 'recording' || isSaving}
-        title="Browse for audio file"
+        title={$_('recorder_browse')}
       >
         <img src="icon_browse.svg" alt="" />
       </button>
       <button
         class="flex h-8 w-8 cursor-pointer items-center justify-center rounded bg-black text-white transition-colors hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label="Reset"
+        aria-label={$_('recorder_reset')}
         onclick={resetToFactory}
         disabled={midiNoteState.selectedSample === null ||
           capture.status === 'recording' ||
           isSaving}
-        title="Load factory sound"
+        title={$_('recorder_reset')}
       >
         <img src="icon_reset.svg" alt="" />
       </button>

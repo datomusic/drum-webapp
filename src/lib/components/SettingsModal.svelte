@@ -13,7 +13,22 @@
     disconnectDevice();
     open = false;
   }
+
+  function onWindowKeydown(event: KeyboardEvent) {
+    if (open && event.key === 'Escape') {
+      open = false;
+    }
+  }
+
+  function onBackdropClick(event: MouseEvent) {
+    // Only close when the backdrop itself is clicked, not the panel
+    if (event.target === event.currentTarget) {
+      open = false;
+    }
+  }
 </script>
+
+<svelte:window onkeydown={onWindowKeydown} />
 
 <button
   class="fixed top-4 right-4 z-40 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
@@ -37,6 +52,9 @@
     role="dialog"
     aria-modal="true"
     aria-labelledby="settings-title"
+    tabindex="-1"
+    onclick={onBackdropClick}
+    onkeydown={onWindowKeydown}
   >
     <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
       <h2 id="settings-title" class="text-xl font-bold text-gray-900">

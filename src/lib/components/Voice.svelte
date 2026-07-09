@@ -3,7 +3,6 @@
   import { colorFilters } from "$lib/stores/colorFilters";
   import { isDraggingOverWindow } from "$lib/stores/dragDropStore";
   import { sampleUploadStore, uploadQueue } from "$lib/stores/sampleUpload";
-  import { downloadState } from "$lib/stores/sampleDownload.svelte";
   import { isTransferActive } from "$lib/services/sdsProtocol";
   import { isAudioFile } from "$lib/services/audioProcessor";
   import {

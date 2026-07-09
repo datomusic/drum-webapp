@@ -72,10 +72,10 @@
   "fw_upgrade_done_button": "Klaar",
   "fw_upgrade_failed": "Dat lukte niet. Controleer je DRUM en probeer het nog eens.",
   "recorder_no_factory_sample": "Geen fabrieksgeluid voor deze pad",
+  "recorder_browse": "Kies een geluidsbestand",
+  "recorder_reset": "Fabrieksgeluid laden",
   "download_reading": "Lezen...",
-  "download_empty_slot": "Leeg pad",
   "download_failed": "Lezen mislukt",
-  "download_timeout": "Geen antwoord van DRUM",
   "settings_title": "Instellingen",
   "settings_close": "Sluiten",
   "settings_not_connected": "Geen DRUM verbonden"
