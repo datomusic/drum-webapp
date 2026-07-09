@@ -253,11 +253,12 @@
 
     // Only load when the slot actually changed
     if (slot === lastLoadedSlot) return;
-    lastLoadedSlot = slot;
 
-    // Don't disturb an active recording or save
     untrack(() => {
+      // Don't disturb an active recording or save; the slot stays unmarked so
+      // it loads on the next trigger once recording/saving has finished
       if (capture.status === 'recording' || isSaving) return;
+      lastLoadedSlot = slot;
 
       capture.reset();
       errorMessage = null;
