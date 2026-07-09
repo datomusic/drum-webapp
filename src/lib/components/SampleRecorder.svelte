@@ -15,7 +15,8 @@
     findFirstTransient,
     findQuietEnd,
     resampleLinear,
-    floatTo16BitPcm
+    floatTo16BitPcm,
+    decodeToMono
   } from '$lib/services/audioAnalysis';
   import WaveformDisplay from './WaveformDisplay.svelte';
   import { FACTORY_SAMPLES } from '$lib/config/factorySamples';
@@ -182,17 +183,8 @@
    */
   async function loadIntoBuffer(arrayBuffer: ArrayBuffer, name: string) {
     errorMessage = null;
-    const ctx = new AudioContext();
     try {
-      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-      let samples = audioBuffer.getChannelData(0);
-      if (audioBuffer.numberOfChannels > 1) {
-        const right = audioBuffer.getChannelData(1);
-        samples = samples.map((v, i) => (v + right[i]) * 0.5);
-      }
-      if (audioBuffer.sampleRate !== capture.sampleRate) {
-        samples = resampleLinear(samples, audioBuffer.sampleRate, capture.sampleRate);
-      }
+      let { samples } = await decodeToMono(arrayBuffer, capture.sampleRate);
       if (samples.length > MAX_LOAD_S * capture.sampleRate) {
         samples = samples.slice(0, MAX_LOAD_S * capture.sampleRate);
       }
@@ -203,8 +195,6 @@
     } catch (error) {
       errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(`Failed to load ${name}: ${errorMessage}`);
-    } finally {
-      ctx.close();
     }
   }
 

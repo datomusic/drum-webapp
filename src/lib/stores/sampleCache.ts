@@ -11,6 +11,7 @@
  */
 
 import { FACTORY_SAMPLES } from '$lib/config/factorySamples';
+import { decodeToMono } from '$lib/services/audioAnalysis';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('SampleCache');
@@ -56,7 +57,6 @@ export function preloadFactorySamples(): Promise<void> {
 }
 
 async function doPreload(): Promise<void> {
-  const ctx = new AudioContext({ sampleRate: 44100 });
   let loaded = 0;
 
   await Promise.all(
@@ -67,14 +67,9 @@ async function doPreload(): Promise<void> {
         if (!response.ok) {
           throw new Error(response.statusText);
         }
-        const audioBuffer = await ctx.decodeAudioData(await response.arrayBuffer());
-        let samples = audioBuffer.getChannelData(0);
-        if (audioBuffer.numberOfChannels > 1) {
-          const right = audioBuffer.getChannelData(1);
-          samples = samples.map((v, i) => (v + right[i]) * 0.5);
-        }
+        const { samples, sampleRate } = await decodeToMono(await response.arrayBuffer());
         if (!cache.has(slot)) {
-          cache.set(slot, { samples, sampleRate: audioBuffer.sampleRate, source: 'factory' });
+          cache.set(slot, { samples, sampleRate, source: 'factory' });
         }
         loaded++;
       } catch (error) {
@@ -85,6 +80,5 @@ async function doPreload(): Promise<void> {
     })
   );
 
-  await ctx.close();
   logger.info(`Preloaded ${loaded}/${Object.keys(FACTORY_SAMPLES).length} factory samples`);
 }
