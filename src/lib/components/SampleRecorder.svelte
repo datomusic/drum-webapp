@@ -184,13 +184,13 @@
   async function loadIntoBuffer(arrayBuffer: ArrayBuffer, name: string) {
     errorMessage = null;
     try {
-      let { samples } = await decodeToMono(arrayBuffer, capture.sampleRate);
-      if (samples.length > MAX_LOAD_S * capture.sampleRate) {
-        samples = samples.slice(0, MAX_LOAD_S * capture.sampleRate);
+      let { samples, sampleRate } = await decodeToMono(arrayBuffer);
+      if (samples.length > MAX_LOAD_S * sampleRate) {
+        samples = samples.slice(0, MAX_LOAD_S * sampleRate);
       }
-      capture.load(samples, capture.sampleRate);
+      capture.load(samples, sampleRate);
       gainDb = 0;
-      autoTrim(samples);
+      autoTrim(capture.recorded ?? samples);
       logger.info(`Loaded ${name} into buffer (${samples.length} samples)`);
     } catch (error) {
       errorMessage = error instanceof Error ? error.message : String(error);
@@ -233,12 +233,10 @@
 
   /** Put a sample buffer into the editor: resample to the capture rate, reset gain, trim to the full (max 1s) sample. */
   function loadIntoEditor(samples: Float32Array, sampleRate: number) {
-    if (sampleRate !== capture.sampleRate) {
-      samples = resampleLinear(samples, sampleRate, capture.sampleRate);
-    }
-    capture.load(samples, capture.sampleRate);
+    capture.load(samples, sampleRate);
     gainDb = 0;
-    const durationMs = Math.floor((samples.length / capture.sampleRate) * 1000);
+    const loaded = capture.recorded ?? samples;
+    const durationMs = Math.floor((loaded.length / capture.sampleRate) * 1000);
     trimStartMs = 0;
     trimEndMs = Math.min(durationMs, MAX_SELECTION_S * 1000);
   }

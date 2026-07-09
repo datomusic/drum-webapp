@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '$lib/utils/logger';
+import { resampleLinear } from '$lib/services/audioAnalysis';
 
 const logger = createLogger('SampleCapture');
 
@@ -101,15 +102,14 @@ export class SampleCapture {
   /**
    * Load an externally sourced buffer (browsed file, factory sample) as if it
    * had been recorded, so it can be trimmed and played back. Works without an
-   * open microphone stream.
+   * open microphone stream. Accepts samples at any sample rate and resamples
+   * to `this.sampleRate` when it differs from the incoming rate.
    */
   load(samples: Float32Array, sampleRate: number): void {
-    if (!this.audioContext) {
-      this.sampleRate = sampleRate;
-    } else if (sampleRate !== this.sampleRate) {
-      throw new Error(`Sample rate mismatch: ${sampleRate} vs ${this.sampleRate}`);
-    }
-    this.recorded = samples;
+    this.recorded =
+      sampleRate !== this.sampleRate
+        ? resampleLinear(samples, sampleRate, this.sampleRate)
+        : samples;
     this.status = 'recorded';
   }
 
