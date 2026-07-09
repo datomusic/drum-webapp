@@ -323,12 +323,11 @@
       </button>
     </div>
     <button
-      class="h-20 w-20 self-center rounded-full bg-red-600 text-lg font-bold text-white disabled:opacity-50"
+      class="h-20 w-20 cursor-pointer self-center rounded-full bg-red-600 text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
       onclick={onRecordClick}
+      aria-label={$_('recorder_record')}
       disabled={capture.status === 'recording' || isDownloading}
-    >
-      {capture.status === 'recording' ? $_('recorder_recording') : isDownloading ? $_('download_reading') : $_('recorder_record')}
-    </button>
+    ></button>
     <WaveformDisplay
       {capture}
       {gainFactor}
@@ -354,11 +353,12 @@
     </div>
     <div class="flex flex-col justify-center gap-2">
       <button
-        class="w-20 rounded-lg bg-teal-600 py-4 text-lg font-bold text-white disabled:opacity-50"
+        class="flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-green-600 transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         onclick={playSelection}
+        aria-label={$_('recorder_play')}
         disabled={capture.status !== 'recorded'}
       >
-        {$_('recorder_play')}
+        <span class="play-icon"></span>
       </button>
       <button
         class="h-20 w-20 rounded-lg bg-yellow-400 text-lg font-bold disabled:opacity-50"
@@ -392,5 +392,16 @@
 
   .gain-slider:disabled {
     opacity: 0.3;
+  }
+
+  .play-icon {
+    display: block;
+    width: 0;
+    height: 0;
+    border-left: 16px solid white;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    margin-left: 3px;
+    border-radius: 2px;
   }
 </style>
