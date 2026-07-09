@@ -68,8 +68,9 @@
   });
 
   // Track previous values to distinguish sample-selection changes from resize changes
-  let prevSelectedSampleIndex = selectedSampleIndex;
-  let prevContainerWidthPx = 0;
+  // svelte-ignore state_referenced_locally -- intentional one-time snapshot, updated in the effect below
+  let prevSelectedSampleIndex = $state(selectedSampleIndex);
+  let prevContainerWidthPx = $state(0);
 
   // Reactive effect to update the translation when selectedSampleIndex or containerWidthPx changes
   $effect(() => {
