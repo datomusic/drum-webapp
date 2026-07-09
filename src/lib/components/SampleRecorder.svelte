@@ -178,19 +178,17 @@
   const MAX_LOAD_S = 5; // cap loaded files so the trim view stays usable
 
   /**
-   * Decode an audio file into the capture buffer (mono, capture sample rate)
-   * so it can be trimmed and gain-adjusted like a recording.
+   * Decode an audio file (mono, capture sample rate), capping long files so
+   * the trim view stays usable, and load it into the editor with auto-trim.
    */
-  async function loadIntoBuffer(arrayBuffer: ArrayBuffer, name: string) {
+  async function loadFileIntoEditor(arrayBuffer: ArrayBuffer, name: string) {
     errorMessage = null;
     try {
       let { samples, sampleRate } = await decodeToMono(arrayBuffer);
       if (samples.length > MAX_LOAD_S * sampleRate) {
         samples = samples.slice(0, MAX_LOAD_S * sampleRate);
       }
-      capture.load(samples, sampleRate);
-      gainDb = 0;
-      autoTrim(capture.recorded ?? samples);
+      loadIntoEditor(samples, sampleRate, 'auto');
       logger.info(`Loaded ${name} into buffer (${samples.length} samples)`);
     } catch (error) {
       errorMessage = error instanceof Error ? error.message : String(error);
@@ -201,7 +199,7 @@
   async function handleFileSelect(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
     const file = input.files?.[0];
-    if (file) await loadIntoBuffer(await file.arrayBuffer(), file.name);
+    if (file) await loadFileIntoEditor(await file.arrayBuffer(), file.name);
     input.value = '';
   }
 
@@ -220,7 +218,7 @@
       if (!response.ok) {
         throw new Error(`Failed to load factory sample: ${response.statusText}`);
       }
-      await loadIntoBuffer(await response.arrayBuffer(), filename);
+      await loadFileIntoEditor(await response.arrayBuffer(), filename);
     } catch (error) {
       errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(`Factory sample load failed: ${errorMessage}`);
@@ -231,14 +229,22 @@
     capture.play(getSelection());
   }
 
-  /** Put a sample buffer into the editor: resample to the capture rate, reset gain, trim to the full (max 1s) sample. */
-  function loadIntoEditor(samples: Float32Array, sampleRate: number) {
+  /**
+   * Put a sample buffer into the editor and reset gain, then set the trim
+   * markers per `trim`: 'auto' snaps to the detected transient/decay,
+   * 'full' selects the whole (max 1s) sample.
+   */
+  function loadIntoEditor(samples: Float32Array, sampleRate: number, trim: 'auto' | 'full') {
     capture.load(samples, sampleRate);
     gainDb = 0;
     const loaded = capture.recorded ?? samples;
-    const durationMs = Math.floor((loaded.length / capture.sampleRate) * 1000);
-    trimStartMs = 0;
-    trimEndMs = Math.min(durationMs, MAX_SELECTION_S * 1000);
+    if (trim === 'auto') {
+      autoTrim(loaded);
+    } else {
+      const durationMs = Math.floor((loaded.length / capture.sampleRate) * 1000);
+      trimStartMs = 0;
+      trimEndMs = Math.min(durationMs, MAX_SELECTION_S * 1000);
+    }
   }
 
   // Load the slot's sample into the editor when a new note is selected.
@@ -263,7 +269,7 @@
 
       const cached = getCachedSample(slot);
       if (cached) {
-        loadIntoEditor(cached.samples, cached.sampleRate);
+        loadIntoEditor(cached.samples, cached.sampleRate, 'full');
         logger.info(`Loaded ${cached.source} sample for slot ${slot} from cache`);
       }
 
@@ -274,7 +280,7 @@
           cacheDeviceSample(slot, result.samples, result.sampleRate);
           // Only load if the user hasn't moved on to another slot meanwhile
           if (midiNoteState.selectedSample === slot) {
-            loadIntoEditor(result.samples, result.sampleRate);
+            loadIntoEditor(result.samples, result.sampleRate, 'full');
             logger.info(`Loaded downloaded sample for slot ${slot} into buffer`);
           }
         } else if (downloadState.status === 'empty') {
