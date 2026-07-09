@@ -44,7 +44,7 @@ interface SdsResponse {
 
 // Incoming message for download (dump header or data packet from device)
 interface SdsIncomingMessage {
-  type: 'header' | 'data' | 'cancel' | 'nak' | 'timeout';
+  type: 'header' | 'data' | 'cancel' | 'nak' | 'timeout' | 'aborted';
   raw?: Uint8Array;
 }
 
@@ -59,26 +59,31 @@ let pendingIncoming: {
   timer: number;
 } | null = null;
 
+// Messages that arrive while no waitForIncoming() is armed (SDS packets can
+// arrive back-to-back faster than the receive loop re-arms) are queued here
+// so they are never dropped.
+let incomingQueue: SdsIncomingMessage[] = [];
+
 let messageHandler: ((this: MIDIInput, ev: MIDIMessageEvent) => any) | null = null;
 
 // Transfer lock: prevents concurrent SDS uploads/downloads
-let _transferActive = false;
+let _activeTransfer: 'upload' | 'download' | null = null;
 
 /**
  * Check whether an SDS transfer (upload or download) is currently active.
  */
 export function isTransferActive(): boolean {
-  return _transferActive;
+  return _activeTransfer !== null;
 }
 
 /**
  * Acquire the transfer lock. Throws if a transfer is already in progress.
  */
 export function acquireTransferLock(direction: 'upload' | 'download'): void {
-  if (_transferActive) {
+  if (_activeTransfer) {
     throw new Error(`Cannot start ${direction}: another SDS transfer is already active`);
   }
-  _transferActive = true;
+  _activeTransfer = direction;
   logger.info(`Transfer lock acquired (${direction})`);
 }
 
@@ -86,7 +91,7 @@ export function acquireTransferLock(direction: 'upload' | 'download'): void {
  * Release the transfer lock.
  */
 export function releaseTransferLock(): void {
-  _transferActive = false;
+  _activeTransfer = null;
   logger.info('Transfer lock released');
 }
 
@@ -131,23 +136,28 @@ function handleMidiMessage(this: MIDIInput, event: MIDIMessageEvent): void {
     }
 
     // Handle incoming dump header/data/cancel during download
-    if (pendingIncoming) {
+    if (_activeTransfer === 'download') {
+      let incoming: SdsIncomingMessage | null = null;
       if (messageType === SDS_DUMP_HEADER) {
-        clearTimeout(pendingIncoming.timer);
-        pendingIncoming.resolve({ type: 'header', raw: new Uint8Array(message) });
-        pendingIncoming = null;
+        incoming = { type: 'header', raw: new Uint8Array(message) };
       } else if (messageType === SDS_DATA_PACKET) {
-        clearTimeout(pendingIncoming.timer);
-        pendingIncoming.resolve({ type: 'data', raw: new Uint8Array(message) });
-        pendingIncoming = null;
+        incoming = { type: 'data', raw: new Uint8Array(message) };
       } else if (messageType === SDS_CANCEL) {
-        clearTimeout(pendingIncoming.timer);
-        pendingIncoming.resolve({ type: 'cancel' });
-        pendingIncoming = null;
+        incoming = { type: 'cancel' };
       } else if (messageType === SDS_NAK) {
-        clearTimeout(pendingIncoming.timer);
-        pendingIncoming.resolve({ type: 'nak' });
-        pendingIncoming = null;
+        incoming = { type: 'nak' };
+      }
+
+      if (incoming) {
+        if (pendingIncoming) {
+          clearTimeout(pendingIncoming.timer);
+          const { resolve } = pendingIncoming;
+          pendingIncoming = null;
+          resolve(incoming);
+        } else {
+          // Receive loop is busy processing the previous message — queue it
+          incomingQueue.push(incoming);
+        }
       }
     }
   }
@@ -505,9 +515,20 @@ export interface SdsDownloadResult {
 }
 
 /**
- * Wait for an incoming SDS message from the device (dump header or data packet)
+ * Wait for an incoming SDS message from the device (dump header or data
+ * packet). Returns a queued message immediately if one arrived while the
+ * receive loop was busy; resolves with 'aborted' when the signal fires.
  */
-function waitForIncoming(timeout: number): Promise<SdsIncomingMessage> {
+function waitForIncoming(timeout: number, abortSignal?: AbortSignal): Promise<SdsIncomingMessage> {
+  const queued = incomingQueue.shift();
+  if (queued) {
+    return Promise.resolve(queued);
+  }
+
+  if (abortSignal?.aborted) {
+    return Promise.resolve({ type: 'aborted' });
+  }
+
   return new Promise((resolve) => {
     // Cancel any existing pending incoming
     if (pendingIncoming) {
@@ -515,12 +536,26 @@ function waitForIncoming(timeout: number): Promise<SdsIncomingMessage> {
       pendingIncoming.resolve({ type: 'timeout' });
     }
 
+    const settle = (msg: SdsIncomingMessage) => {
+      abortSignal?.removeEventListener('abort', onAbort);
+      resolve(msg);
+    };
+
+    const onAbort = () => {
+      if (pendingIncoming?.resolve === settle) {
+        clearTimeout(pendingIncoming.timer);
+        pendingIncoming = null;
+      }
+      settle({ type: 'aborted' });
+    };
+
     const timer = window.setTimeout(() => {
       pendingIncoming = null;
-      resolve({ type: 'timeout' });
+      settle({ type: 'timeout' });
     }, timeout);
 
-    pendingIncoming = { resolve, timer };
+    pendingIncoming = { resolve: settle, timer };
+    abortSignal?.addEventListener('abort', onAbort, { once: true });
   });
 }
 
@@ -604,6 +639,8 @@ export async function receiveSampleViaSds(
 
   logger.info(`Starting SDS download: slot ${sampleNumber}`);
 
+  incomingQueue = [];
+
   try {
     // Step 1: Send Dump Request
     // F0 7E 65 03 <slot LSB> <slot MSB> F7
@@ -614,9 +651,9 @@ export async function receiveSampleViaSds(
     onProgress?.({ stage: 'request', percentage: 0 });
 
     // Step 2: Wait for Dump Header (or CANCEL if slot is empty)
-    const headerMsg = await waitForIncoming(DOWNLOAD_MSG_TIMEOUT);
+    const headerMsg = await waitForIncoming(DOWNLOAD_MSG_TIMEOUT, abortSignal);
 
-    if (abortSignal?.aborted) {
+    if (headerMsg.type === 'aborted') {
       sendCancel();
       throw new Error('Download aborted');
     }
@@ -663,12 +700,12 @@ export async function receiveSampleViaSds(
     let lastAckedPacket = -1;
 
     while (samplesReceived < lengthWords) {
-      if (abortSignal?.aborted) {
+      const dataMsg = await waitForIncoming(DOWNLOAD_MSG_TIMEOUT, abortSignal);
+
+      if (dataMsg.type === 'aborted') {
         sendCancel();
         throw new Error('Download aborted');
       }
-
-      const dataMsg = await waitForIncoming(DOWNLOAD_MSG_TIMEOUT);
 
       if (dataMsg.type === 'timeout') {
         throw new Error('Device stopped responding during download');
@@ -696,6 +733,14 @@ export async function receiveSampleViaSds(
       if (packetNum === lastAckedPacket) {
         logger.debug(`Duplicate packet ${packetNum} — re-ACKing`);
         sendAck(packetNum);
+        continue;
+      }
+
+      // Reject out-of-order packets — writing them into the buffer at the
+      // current offset would silently corrupt the sample
+      if (packetNum !== expectedPacketNum) {
+        logger.warn(`Out-of-order packet ${packetNum} (expected ${expectedPacketNum}) — sending NAK`);
+        sendNak(expectedPacketNum);
         continue;
       }
 
@@ -743,6 +788,7 @@ export async function receiveSampleViaSds(
     logger.error('SDS download failed: ' + (error instanceof Error ? error.message : String(error)));
     throw error;
   } finally {
+    incomingQueue = [];
     releaseTransferLock();
   }
 }
