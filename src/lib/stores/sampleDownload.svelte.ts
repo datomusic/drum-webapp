@@ -4,9 +4,9 @@
  * Manages sample download state for reading samples from the Dato DRUM
  * device via SDS Dump Request. Uses Svelte 5 runes for reactive state.
  *
- * The download is triggered when a note/slot is selected, and the
- * resulting sample data is made available for the SampleRecorder to
- * populate its waveform buffer.
+ * The download is triggered when a note/slot is selected. Callers receive
+ * the downloaded sample data via the `downloadSample` promise; the store
+ * itself only tracks status/progress/error for the in-flight transfer.
  */
 
 'use runes';
@@ -22,6 +22,7 @@ import {
   type SdsDownloadResult
 } from '$lib/services/sdsProtocol';
 import { createLogger } from '$lib/utils/logger';
+import { cacheDeviceSample } from '$lib/stores/sampleCache';
 
 const logger = createLogger('SampleDownload');
 
@@ -35,19 +36,13 @@ interface DownloadState {
   progress: number;
   /** Error message if status is 'error' */
   error: string | null;
-  /** Downloaded sample data (Float32Array, normalized -1..1) */
-  samples: Float32Array | null;
-  /** Sample rate from the dump header */
-  sampleRate: number;
 }
 
 const downloadState = $state<DownloadState>({
   status: 'idle',
   slot: null,
   progress: 0,
-  error: null,
-  samples: null,
-  sampleRate: 44100
+  error: null
 });
 
 let abortController: AbortController | null = null;
@@ -104,7 +99,6 @@ async function downloadSample(slot: number): Promise<SdsDownloadResult | null> {
   downloadState.slot = slot;
   downloadState.progress = 0;
   downloadState.error = null;
-  downloadState.samples = null;
 
   abortController = new AbortController();
   const signal = abortController.signal;
@@ -126,17 +120,14 @@ async function downloadSample(slot: number): Promise<SdsDownloadResult | null> {
     if (result === null) {
       // Slot is empty
       downloadState.status = 'empty';
-      downloadState.samples = null;
       logger.info(`Slot ${slot} is empty`);
       return null;
     }
 
-    // Store the result
     downloadState.status = 'done';
-    downloadState.samples = result.samples;
-    downloadState.sampleRate = result.sampleRate;
     downloadState.progress = 100;
     logger.info(`Downloaded ${result.samples.length} samples from slot ${slot}`);
+    cacheDeviceSample(slot, result.samples, result.sampleRate);
 
     return result;
   } catch (error) {
@@ -187,7 +178,6 @@ function resetDownload(): void {
   downloadState.slot = null;
   downloadState.progress = 0;
   downloadState.error = null;
-  downloadState.samples = null;
 }
 
 export { downloadState, downloadSample, cancelDownload, resetDownload };

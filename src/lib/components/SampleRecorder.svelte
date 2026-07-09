@@ -277,7 +277,6 @@
 
       downloadSample(slot).then((result) => {
         if (result && result.samples.length > 0) {
-          cacheDeviceSample(slot, result.samples, result.sampleRate);
           // Only load if the user hasn't moved on to another slot meanwhile
           if (midiNoteState.selectedSample === slot) {
             loadIntoEditor(result.samples, result.sampleRate, 'full');
