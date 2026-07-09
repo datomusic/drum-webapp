@@ -15,8 +15,10 @@ const config = {
 			fallback: undefined,
 			precompress: false,
 			strict: true
-		})
-		// No base path needed - serving from root domain drum.dato.mu
+		}),
+		paths: {
+			base: process.env.BASE_PATH || ''
+		}
 	}
 };
 

@@ -20,6 +20,14 @@
     samples[selectedSampleIndex]?.midiNoteNumber,
   );
 
+  // Dim this track when a note on another track is selected
+  let isDimmed = $derived(
+    midiNoteState.selectedSample !== null &&
+      !samples.some(
+        (sample) => sample.midiNoteNumber === midiNoteState.selectedSample,
+      ),
+  );
+
   const voiceIcons = [
     "pad_kick.svg",
     "pad_snare.svg",
@@ -60,8 +68,9 @@
   });
 
   // Track previous values to distinguish sample-selection changes from resize changes
-  let prevSelectedSampleIndex = selectedSampleIndex;
-  let prevContainerWidthPx = 0;
+  // svelte-ignore state_referenced_locally -- intentional one-time snapshot, updated in the effect below
+  let prevSelectedSampleIndex = $state(selectedSampleIndex);
+  let prevContainerWidthPx = $state(0);
 
   // Reactive effect to update the translation when selectedSampleIndex or containerWidthPx changes
   $effect(() => {
@@ -85,7 +94,7 @@
   });
 </script>
 
-<div class="track" bind:clientWidth={containerWidthPx}>
+<div class="track" class:dimmed={isDimmed} bind:clientWidth={containerWidthPx}>
   <!-- Button strip: absolutely positioned so it can slide offscreen -->
   <div
     class="button-strip"
@@ -122,6 +131,11 @@
     grid-template-rows: auto;
     justify-items: center;
     margin-bottom: var(--track-gap);
+    transition: opacity 350ms ease-out;
+  }
+
+  .track.dimmed {
+    opacity: 0.35;
   }
 
   .button-strip {

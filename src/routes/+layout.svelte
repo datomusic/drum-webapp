@@ -9,6 +9,7 @@
 	import { onMount } from "svelte";
 	import { createLogger } from "$lib/utils/logger";
 	import Footer from "$lib/components/Footer.svelte";
+	import SettingsModal from "$lib/components/SettingsModal.svelte";
 
 	const logger = createLogger("Layout");
 
@@ -92,6 +93,8 @@
 	</main>
 
 	<Footer />
+
+	<SettingsModal />
 
 	{#if $isDraggingOverWindow}
 		<div class="fixed inset-0 bg-black opacity-50 z-[999]" aria-hidden="true">

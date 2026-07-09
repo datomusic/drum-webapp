@@ -56,6 +56,7 @@ const DRUM_DEVICE_FILTERS_LOWER = DRUM_DEVICE_FILTERS.map((f) => f.toLowerCase()
 const NOTE_ON_VELOCITY = 127;
 const NOTE_OFF_VELOCITY = 0;
 const NOTE_DURATION_MS = 100;
+const MIN_VELOCITY_FOR_SELECTION = 120;
 const IDENTITY_RETRY_DELAY_MS = 1000;
 
 const logger = createLogger('MIDI');
@@ -150,8 +151,10 @@ function handleMidiNoteMessage(data: Uint8Array): void {
     const status = statusCode & MIDI_STATUS_MASK;
 
     if (status === MIDI_NOTE_ON && velocity > 0) {
+        if (velocity >= MIN_VELOCITY_FOR_SELECTION) {
+            midiNoteState.selectedSample = noteNumber;
+        }
         midiNoteState.active = noteNumber;
-        midiNoteState.selectedSample = noteNumber;
         midiNoteState.triggerId++;
         midiNoteState.lastTriggeredNote = noteNumber;
     } else if (status === MIDI_NOTE_OFF || (status === MIDI_NOTE_ON && velocity === 0)) {

@@ -2,11 +2,13 @@
  * MIDI Sample Dump Standard (SDS) Protocol Implementation
  *
  * This service implements the MIDI SDS protocol for reliable sample transfer
- * to the Dato DRUM device. It handles:
- * - Dump header creation
- * - Data packet encoding with checksum validation
+ * to and from the Dato DRUM device. It handles:
+ * - Dump header creation and parsing
+ * - Data packet encoding/decoding with checksum validation
  * - ACK/NAK handshaking with timeout fallback
  * - Progress monitoring
+ * - Dump Request (download) with incoming data packet reception
+ * - Transfer lock to prevent concurrent uploads/downloads
  */
 
 import { midiState } from '$lib/stores/midi.svelte';
@@ -23,14 +25,16 @@ const SYSEX_CHANNEL = 0x65; // DRUM device channel
 // SDS Message Types
 const SDS_DUMP_HEADER = 0x01;
 const SDS_DATA_PACKET = 0x02;
+const SDS_DUMP_REQUEST = 0x03;
 const SDS_ACK = 0x7F;
 const SDS_NAK = 0x7E;
 const SDS_CANCEL = 0x7D;
 const SDS_WAIT = 0x7C;
 
 // Timeouts
-const PACKET_TIMEOUT = 20;   // 20ms per packet as per SDS spec
-const HEADER_TIMEOUT = 2000; // 2 second timeout for dump header
+const PACKET_TIMEOUT = 20;    // 20ms per packet as per SDS spec
+const HEADER_TIMEOUT = 2000;  // 2 second timeout for dump header
+const DOWNLOAD_MSG_TIMEOUT = 2000; // 2 second per-message timeout for downloads
 
 // Response handling
 interface SdsResponse {
@@ -38,12 +42,58 @@ interface SdsResponse {
   packet: number;
 }
 
+// Incoming message for download (dump header or data packet from device)
+interface SdsIncomingMessage {
+  type: 'header' | 'data' | 'cancel' | 'nak' | 'timeout' | 'aborted';
+  raw?: Uint8Array;
+}
+
 let pendingResponse: {
   resolve: (response: SdsResponse) => void;
   timer: number;
 } | null = null;
 
+// Pending incoming message resolver for download flow
+let pendingIncoming: {
+  resolve: (msg: SdsIncomingMessage) => void;
+  timer: number;
+} | null = null;
+
+// Messages that arrive while no waitForIncoming() is armed (SDS packets can
+// arrive back-to-back faster than the receive loop re-arms) are queued here
+// so they are never dropped.
+let incomingQueue: SdsIncomingMessage[] = [];
+
 let messageHandler: ((this: MIDIInput, ev: MIDIMessageEvent) => any) | null = null;
+
+// Transfer lock: prevents concurrent SDS uploads/downloads
+let _activeTransfer: 'upload' | 'download' | null = null;
+
+/**
+ * Check whether an SDS transfer (upload or download) is currently active.
+ */
+export function isTransferActive(): boolean {
+  return _activeTransfer !== null;
+}
+
+/**
+ * Acquire the transfer lock. Throws if a transfer is already in progress.
+ */
+export function acquireTransferLock(direction: 'upload' | 'download'): void {
+  if (_activeTransfer) {
+    throw new Error(`Cannot start ${direction}: another SDS transfer is already active`);
+  }
+  _activeTransfer = direction;
+  logger.info(`Transfer lock acquired (${direction})`);
+}
+
+/**
+ * Release the transfer lock.
+ */
+export function releaseTransferLock(): void {
+  _activeTransfer = null;
+  logger.info('Transfer lock released');
+}
 
 /**
  * Check if a MIDI message is an SDS message
@@ -70,7 +120,7 @@ function handleMidiMessage(this: MIDIInput, event: MIDIMessageEvent): void {
     const messageType = message[3];
     const packetNum = message.length > 4 ? message[4] : 0;
 
-    // Handle responses during handshaking
+    // Handle ACK/NAK/WAIT/CANCEL responses during upload handshaking
     if (pendingResponse && (messageType === SDS_ACK || messageType === SDS_NAK ||
                            messageType === SDS_WAIT || messageType === SDS_CANCEL)) {
       clearTimeout(pendingResponse.timer);
@@ -83,6 +133,32 @@ function handleMidiMessage(this: MIDIInput, event: MIDIMessageEvent): void {
 
       pendingResponse.resolve({ type, packet: packetNum });
       pendingResponse = null;
+    }
+
+    // Handle incoming dump header/data/cancel during download
+    if (_activeTransfer === 'download') {
+      let incoming: SdsIncomingMessage | null = null;
+      if (messageType === SDS_DUMP_HEADER) {
+        incoming = { type: 'header', raw: new Uint8Array(message) };
+      } else if (messageType === SDS_DATA_PACKET) {
+        incoming = { type: 'data', raw: new Uint8Array(message) };
+      } else if (messageType === SDS_CANCEL) {
+        incoming = { type: 'cancel' };
+      } else if (messageType === SDS_NAK) {
+        incoming = { type: 'nak' };
+      }
+
+      if (incoming) {
+        if (pendingIncoming) {
+          clearTimeout(pendingIncoming.timer);
+          const { resolve } = pendingIncoming;
+          pendingIncoming = null;
+          resolve(incoming);
+        } else {
+          // Receive loop is busy processing the previous message — queue it
+          incomingQueue.push(incoming);
+        }
+      }
     }
   }
 }
@@ -297,6 +373,8 @@ export async function transferSampleViaSds(
     throw new Error(`Sample number must be between 30-61, got: ${sampleNumber}`);
   }
 
+  acquireTransferLock('upload');
+
   logger.info(`Starting SDS transfer: slot ${sampleNumber}, ${pcmData.length} bytes, ${sampleRate}Hz`);
 
   const totalPackets = Math.ceil(pcmData.length / 80); // 40 samples * 2 bytes per packet
@@ -408,5 +486,309 @@ export async function transferSampleViaSds(
   } catch (error) {
     logger.error('SDS transfer failed: ' + (error instanceof Error ? error.message : String(error)));
     throw error;
+  } finally {
+    releaseTransferLock();
+  }
+}
+
+// ── Download (Dump Request) ─────────────────────────────────────────────
+
+/**
+ * Progress callback for sample download
+ */
+export interface SdsDownloadProgress {
+  stage: 'request' | 'header' | 'data' | 'complete';
+  packet?: number;
+  totalPackets?: number;
+  percentage: number;
+}
+
+/**
+ * Result of a successful sample download
+ */
+export interface SdsDownloadResult {
+  /** Decoded signed 16-bit samples as Float32Array (range -1..1) */
+  samples: Float32Array;
+  sampleRate: number;
+  /** Number of 16-bit words reported in the dump header */
+  lengthWords: number;
+}
+
+/**
+ * Wait for an incoming SDS message from the device (dump header or data
+ * packet). Returns a queued message immediately if one arrived while the
+ * receive loop was busy; resolves with 'aborted' when the signal fires.
+ */
+function waitForIncoming(timeout: number, abortSignal?: AbortSignal): Promise<SdsIncomingMessage> {
+  const queued = incomingQueue.shift();
+  if (queued) {
+    return Promise.resolve(queued);
+  }
+
+  if (abortSignal?.aborted) {
+    return Promise.resolve({ type: 'aborted' });
+  }
+
+  return new Promise((resolve) => {
+    // Cancel any existing pending incoming
+    if (pendingIncoming) {
+      clearTimeout(pendingIncoming.timer);
+      pendingIncoming.resolve({ type: 'timeout' });
+    }
+
+    const settle = (msg: SdsIncomingMessage) => {
+      abortSignal?.removeEventListener('abort', onAbort);
+      resolve(msg);
+    };
+
+    const onAbort = () => {
+      if (pendingIncoming?.resolve === settle) {
+        clearTimeout(pendingIncoming.timer);
+        pendingIncoming = null;
+      }
+      settle({ type: 'aborted' });
+    };
+
+    const timer = window.setTimeout(() => {
+      pendingIncoming = null;
+      settle({ type: 'timeout' });
+    }, timeout);
+
+    pendingIncoming = { resolve: settle, timer };
+    abortSignal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+/**
+ * Send ACK for a received packet
+ */
+function sendAck(packetNum: number): void {
+  sendSdsMessage([SDS_ACK, packetNum & 0x7F]);
+}
+
+/**
+ * Send NAK for a received packet (request retransmission)
+ */
+function sendNak(packetNum: number): void {
+  sendSdsMessage([SDS_NAK, packetNum & 0x7F]);
+}
+
+/**
+ * Send CANCEL to abort a transfer
+ */
+export function sendCancel(): void {
+  sendSdsMessage([SDS_CANCEL, 0x00]);
+  logger.info('Sent SDS CANCEL');
+}
+
+/**
+ * Decode a 21-bit value from 3 SDS 7-bit groups (LSB first)
+ */
+function decode21Bit(b0: number, b1: number, b2: number): number {
+  return (b0 & 0x7F) | ((b1 & 0x7F) << 7) | ((b2 & 0x7F) << 14);
+}
+
+/**
+ * Verify the checksum of an incoming SDS data packet.
+ * Checksum = XOR of bytes at positions [1] through [data.length-3], masked & 0x7F.
+ */
+function verifyPacketChecksum(raw: Uint8Array): boolean {
+  // raw layout: F0 7E 65 02 <pkt#> <120 data bytes> <checksum> F7
+  // checksum covers bytes [1..length-3] (i.e. 7E, 65, 02, pkt#, and 120 data bytes)
+  let xor = 0;
+  for (let i = 1; i <= raw.length - 3; i++) {
+    xor ^= raw[i];
+  }
+  xor &= 0x7F;
+  const expected = raw[raw.length - 2];
+  return xor === expected;
+}
+
+/**
+ * Unpack a single 16-bit sample from 3 SDS bytes (left-justified)
+ *
+ * value = ((b0 & 0x7F) << 9) | ((b1 & 0x7F) << 2) | ((b2 & 0x7F) >> 5)
+ * Then subtract 0x8000 to get signed 16-bit.
+ */
+function unpack16BitSample(b0: number, b1: number, b2: number): number {
+  const unsigned = ((b0 & 0x7F) << 9) | ((b1 & 0x7F) << 2) | ((b2 & 0x7F) >> 5);
+  return unsigned - 0x8000; // convert to signed
+}
+
+/**
+ * Download a sample from the Dato DRUM via SDS Dump Request.
+ *
+ * Sends a Dump Request, receives the Dump Header and Data Packets,
+ * and returns the decoded sample data.
+ *
+ * @param sampleNumber - Slot number (30-61)
+ * @param onProgress - Progress callback
+ * @param abortSignal - Optional AbortSignal to cancel the download
+ * @returns The downloaded sample data, or null if the slot is empty
+ */
+export async function receiveSampleViaSds(
+  sampleNumber: number,
+  onProgress?: (progress: SdsDownloadProgress) => void,
+  abortSignal?: AbortSignal
+): Promise<SdsDownloadResult | null> {
+  if (sampleNumber < 30 || sampleNumber > 61) {
+    throw new Error(`Sample number must be between 30-61, got: ${sampleNumber}`);
+  }
+
+  acquireTransferLock('download');
+
+  logger.info(`Starting SDS download: slot ${sampleNumber}`);
+
+  incomingQueue = [];
+
+  try {
+    // Step 1: Send Dump Request
+    // F0 7E 65 03 <slot LSB> <slot MSB> F7
+    const slotLsb = sampleNumber & 0x7F;
+    const slotMsb = (sampleNumber >> 7) & 0x7F;
+    sendSdsMessage([SDS_DUMP_REQUEST, slotLsb, slotMsb]);
+
+    onProgress?.({ stage: 'request', percentage: 0 });
+
+    // Step 2: Wait for Dump Header (or CANCEL if slot is empty)
+    const headerMsg = await waitForIncoming(DOWNLOAD_MSG_TIMEOUT, abortSignal);
+
+    if (headerMsg.type === 'aborted') {
+      sendCancel();
+      throw new Error('Download aborted');
+    }
+
+    if (headerMsg.type === 'cancel') {
+      logger.info(`Slot ${sampleNumber} is empty (device sent CANCEL)`);
+      return null; // Slot is empty — not an error
+    }
+
+    if (headerMsg.type === 'timeout') {
+      throw new Error('No response from device — firmware may not support SDS download');
+    }
+
+    if (headerMsg.type === 'nak') {
+      throw new Error('Device rejected dump request');
+    }
+
+    if (headerMsg.type !== 'header' || !headerMsg.raw) {
+      throw new Error(`Unexpected response type: ${headerMsg.type}`);
+    }
+
+    // Parse Dump Header
+    // Layout: F0 7E 65 01 sl sh ee p1 p2 p3 g1 g2 g3 ... F7
+    const hdr = headerMsg.raw;
+    const bitDepth = hdr[6];
+    const samplePeriodNs = decode21Bit(hdr[7], hdr[8], hdr[9]);
+    const lengthWords = decode21Bit(hdr[10], hdr[11], hdr[12]);
+
+    const sampleRate = samplePeriodNs > 0 ? Math.round(1000000000 / samplePeriodNs) : 44100;
+    const totalBytes = lengthWords * 2;
+    const totalPackets = Math.ceil(lengthWords / 40); // 40 samples per packet
+
+    logger.info(`Dump header: ${bitDepth}-bit, ${sampleRate}Hz, ${lengthWords} words (${totalPackets} packets)`);
+
+    onProgress?.({ stage: 'header', percentage: 0 });
+
+    // ACK the header
+    sendAck(0x00);
+
+    // Step 3: Receive Data Packets
+    const allSamples = new Int16Array(lengthWords);
+    let samplesReceived = 0;
+    let expectedPacketNum = 0;
+    let lastAckedPacket = -1;
+
+    while (samplesReceived < lengthWords) {
+      const dataMsg = await waitForIncoming(DOWNLOAD_MSG_TIMEOUT, abortSignal);
+
+      if (dataMsg.type === 'aborted') {
+        sendCancel();
+        throw new Error('Download aborted');
+      }
+
+      if (dataMsg.type === 'timeout') {
+        throw new Error('Device stopped responding during download');
+      }
+
+      if (dataMsg.type === 'cancel') {
+        throw new Error('Device cancelled download');
+      }
+
+      if (dataMsg.type !== 'data' || !dataMsg.raw) {
+        throw new Error(`Unexpected message during download: ${dataMsg.type}`);
+      }
+
+      const raw = dataMsg.raw;
+      const packetNum = raw[4] & 0x7F;
+
+      // Verify checksum
+      if (!verifyPacketChecksum(raw)) {
+        logger.warn(`Packet ${packetNum} checksum failed — sending NAK`);
+        sendNak(packetNum);
+        continue;
+      }
+
+      // Handle duplicate packets (our previous ACK may have been lost)
+      if (packetNum === lastAckedPacket) {
+        logger.debug(`Duplicate packet ${packetNum} — re-ACKing`);
+        sendAck(packetNum);
+        continue;
+      }
+
+      // Reject out-of-order packets — writing them into the buffer at the
+      // current offset would silently corrupt the sample
+      if (packetNum !== expectedPacketNum) {
+        logger.warn(`Out-of-order packet ${packetNum} (expected ${expectedPacketNum}) — sending NAK`);
+        sendNak(expectedPacketNum);
+        continue;
+      }
+
+      // Decode 40 samples from 120 data bytes (bytes [5..124])
+      const dataStart = 5;
+      for (let i = 0; i < 40 && samplesReceived < lengthWords; i++) {
+        const b0 = raw[dataStart + i * 3];
+        const b1 = raw[dataStart + i * 3 + 1];
+        const b2 = raw[dataStart + i * 3 + 2];
+        allSamples[samplesReceived] = unpack16BitSample(b0, b1, b2);
+        samplesReceived++;
+      }
+
+      // ACK this packet
+      sendAck(packetNum);
+      lastAckedPacket = packetNum;
+      expectedPacketNum = (packetNum + 1) & 0x7F;
+
+      // Progress update
+      const percentage = Math.min(100, (samplesReceived / lengthWords) * 100);
+      onProgress?.({
+        stage: 'data',
+        packet: Math.ceil(samplesReceived / 40),
+        totalPackets,
+        percentage
+      });
+    }
+
+    logger.info(`Download complete: ${samplesReceived} samples received`);
+
+    // Convert Int16Array to Float32Array (normalized -1..1)
+    const floatSamples = new Float32Array(lengthWords);
+    for (let i = 0; i < lengthWords; i++) {
+      floatSamples[i] = allSamples[i] / 32768;
+    }
+
+    onProgress?.({ stage: 'complete', percentage: 100 });
+
+    return {
+      samples: floatSamples,
+      sampleRate,
+      lengthWords
+    };
+  } catch (error) {
+    logger.error('SDS download failed: ' + (error instanceof Error ? error.message : String(error)));
+    throw error;
+  } finally {
+    incomingQueue = [];
+    releaseTransferLock();
   }
 }

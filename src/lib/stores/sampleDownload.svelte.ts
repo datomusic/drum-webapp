@@ -1,0 +1,205 @@
+/**
+ * Sample Download Store
+ *
+ * Manages sample download state for reading samples from the Dato DRUM
+ * device via SDS Dump Request. Uses Svelte 5 runes for reactive state.
+ *
+ * The download is triggered when a note/slot is selected. Callers receive
+ * the downloaded sample data via the `downloadSample` promise; the store
+ * itself only tracks status/progress/error for the in-flight transfer.
+ */
+
+'use runes';
+
+import { midiState } from './midi.svelte';
+import {
+  receiveSampleViaSds,
+  initializeSdsListener,
+  cleanupSdsListener,
+  isTransferActive,
+  sendCancel,
+  type SdsDownloadProgress,
+  type SdsDownloadResult
+} from '$lib/services/sdsProtocol';
+import { createLogger } from '$lib/utils/logger';
+import { cacheDeviceSample } from '$lib/stores/sampleCache';
+
+const logger = createLogger('SampleDownload');
+
+export type DownloadStatus = 'idle' | 'downloading' | 'done' | 'empty' | 'error';
+
+interface DownloadState {
+  status: DownloadStatus;
+  /** The slot currently being downloaded (or last downloaded) */
+  slot: number | null;
+  /** Progress percentage 0-100 */
+  progress: number;
+  /** Error message if status is 'error' */
+  error: string | null;
+}
+
+const downloadState = $state<DownloadState>({
+  status: 'idle',
+  slot: null,
+  progress: 0,
+  error: null
+});
+
+let abortController: AbortController | null = null;
+
+/** In-flight download promise; awaited after an abort so the transfer lock is released before a new download starts. Never rejects. */
+let activeDownload: Promise<SdsDownloadResult | null> | null = null;
+
+/** Delay before requesting a dump so the device can finish playing the sample before the transfer freezes it. */
+const PRE_DUMP_DELAY_MS = 1000;
+
+/** Abortable delay; rejects with an AbortError when the signal fires. */
+function delay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve(), ms);
+    signal.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      },
+      { once: true }
+    );
+  });
+}
+
+/**
+ * Download a sample from the device for the given slot.
+ *
+ * If another download is already running, it is aborted first.
+ * If an upload is active, the download is rejected (device doesn't allow
+ * concurrent transfers).
+ *
+ * @param slot - MIDI note number / slot (30-61)
+ * @returns The download result, or null if the slot is empty
+ */
+async function downloadSample(slot: number): Promise<SdsDownloadResult | null> {
+  // Abort any in-progress download and wait for it to wind down — the
+  // aborted transfer only releases the SDS transfer lock once its promise
+  // settles, and isTransferActive() below must see the released lock
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+  if (activeDownload) {
+    await activeDownload;
+    activeDownload = null;
+  }
+
+  // Check MIDI connection
+  if (!midiState.isConnected) {
+    logger.warn('Cannot download: MIDI device not connected');
+    return null;
+  }
+
+  // Check for concurrent upload
+  if (isTransferActive()) {
+    logger.warn('Cannot download: another SDS transfer is active');
+    return null;
+  }
+
+  // Reset state
+  downloadState.status = 'downloading';
+  downloadState.slot = slot;
+  downloadState.progress = 0;
+  downloadState.error = null;
+
+  abortController = new AbortController();
+  const signal = abortController.signal;
+
+  const promise = performDownload(slot, signal);
+  activeDownload = promise;
+  try {
+    return await promise;
+  } finally {
+    if (activeDownload === promise) {
+      activeDownload = null;
+    }
+  }
+}
+
+/** Run the actual SDS download for a slot. Never rejects; errors land in downloadState. */
+async function performDownload(slot: number, signal: AbortSignal): Promise<SdsDownloadResult | null> {
+  try {
+    // Let the device finish playing back the sample before the dump freezes it
+    await delay(PRE_DUMP_DELAY_MS, signal);
+
+    initializeSdsListener();
+
+    const result = await receiveSampleViaSds(
+      slot,
+      (progress: SdsDownloadProgress) => {
+        downloadState.progress = progress.percentage;
+      },
+      signal
+    );
+
+    if (result === null) {
+      // Slot is empty
+      downloadState.status = 'empty';
+      logger.info(`Slot ${slot} is empty`);
+      return null;
+    }
+
+    downloadState.status = 'done';
+    downloadState.progress = 100;
+    logger.info(`Downloaded ${result.samples.length} samples from slot ${slot}`);
+    cacheDeviceSample(slot, result.samples, result.sampleRate);
+
+    return result;
+  } catch (error) {
+    if (signal.aborted) {
+      // Aborted by a new download request — not a real error
+      logger.debug(`Download of slot ${slot} aborted`);
+      return null;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    downloadState.status = 'error';
+    downloadState.error = message;
+    logger.error(`Download failed for slot ${slot}: ${message}`);
+    return null;
+  } finally {
+    cleanupSdsListener();
+    if (abortController?.signal === signal) {
+      abortController = null;
+    }
+  }
+}
+
+/**
+ * Cancel any in-progress download and send SDS CANCEL to the device.
+ */
+function cancelDownload(): void {
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+  if (downloadState.status === 'downloading') {
+    try {
+      sendCancel();
+    } catch {
+      // Ignore send errors during cancel
+    }
+    downloadState.status = 'idle';
+    downloadState.progress = 0;
+  }
+}
+
+/**
+ * Reset download state to idle (e.g. when navigating away).
+ */
+function resetDownload(): void {
+  cancelDownload();
+  downloadState.status = 'idle';
+  downloadState.slot = null;
+  downloadState.progress = 0;
+  downloadState.error = null;
+}
+
+export { downloadState, downloadSample, cancelDownload, resetDownload };
