@@ -63,7 +63,7 @@
 
   // Visual feedback for MIDI note trigger
   let isNoteActive = $state(false);
-  let flashTimeout: number | undefined;
+  let flashTimeout: ReturnType<typeof setTimeout> | undefined;
 
   $effect(() => {
     // Depend on triggerId to catch every note event, even if repeated
