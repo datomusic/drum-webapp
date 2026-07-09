@@ -47,6 +47,9 @@ const downloadState = $state<DownloadState>({
 
 let abortController: AbortController | null = null;
 
+/** In-flight download promise; awaited after an abort so the transfer lock is released before a new download starts. Never rejects. */
+let activeDownload: Promise<SdsDownloadResult | null> | null = null;
+
 /** Delay before requesting a dump so the device can finish playing the sample before the transfer freezes it. */
 const PRE_DUMP_DELAY_MS = 1000;
 
@@ -76,10 +79,16 @@ function delay(ms: number, signal: AbortSignal): Promise<void> {
  * @returns The download result, or null if the slot is empty
  */
 async function downloadSample(slot: number): Promise<SdsDownloadResult | null> {
-  // Abort any in-progress download
+  // Abort any in-progress download and wait for it to wind down — the
+  // aborted transfer only releases the SDS transfer lock once its promise
+  // settles, and isTransferActive() below must see the released lock
   if (abortController) {
     abortController.abort();
     abortController = null;
+  }
+  if (activeDownload) {
+    await activeDownload;
+    activeDownload = null;
   }
 
   // Check MIDI connection
@@ -103,6 +112,19 @@ async function downloadSample(slot: number): Promise<SdsDownloadResult | null> {
   abortController = new AbortController();
   const signal = abortController.signal;
 
+  const promise = performDownload(slot, signal);
+  activeDownload = promise;
+  try {
+    return await promise;
+  } finally {
+    if (activeDownload === promise) {
+      activeDownload = null;
+    }
+  }
+}
+
+/** Run the actual SDS download for a slot. Never rejects; errors land in downloadState. */
+async function performDownload(slot: number, signal: AbortSignal): Promise<SdsDownloadResult | null> {
   try {
     // Let the device finish playing back the sample before the dump freezes it
     await delay(PRE_DUMP_DELAY_MS, signal);
