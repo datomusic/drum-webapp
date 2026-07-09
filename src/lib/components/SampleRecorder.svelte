@@ -20,13 +20,8 @@
   } from '$lib/services/audioAnalysis';
   import WaveformDisplay from './WaveformDisplay.svelte';
   import { FACTORY_SAMPLES } from '$lib/config/factorySamples';
-  import {
-    getCachedSample,
-    hasDeviceSample,
-    cacheDeviceSample,
-    preloadFactorySamples
-  } from '$lib/stores/sampleCache';
-  import { featureFlags } from '$lib/stores/featureFlags.svelte';
+  import { cacheDeviceSample, preloadFactorySamples } from '$lib/stores/sampleCache';
+  import { loadSlotSample } from '$lib/services/slotSampleLoader';
   import { createLogger } from '$lib/utils/logger';
 
   const logger = createLogger('SampleRecorder');
@@ -267,27 +262,9 @@
       capture.reset();
       errorMessage = null;
 
-      const cached = getCachedSample(slot);
-      if (cached) {
-        loadIntoEditor(cached.samples, cached.sampleRate, 'full');
-        logger.info(`Loaded ${cached.source} sample for slot ${slot} from cache`);
-      }
-
-      if (!featureFlags.downloadOnSelect || hasDeviceSample(slot)) return;
-
-      downloadSample(slot).then((result) => {
-        if (result && result.samples.length > 0) {
-          // Only load if the user hasn't moved on to another slot meanwhile
-          if (midiNoteState.selectedSample === slot) {
-            loadIntoEditor(result.samples, result.sampleRate, 'full');
-            logger.info(`Loaded downloaded sample for slot ${slot} into buffer`);
-          }
-        } else if (downloadState.status === 'empty') {
-          logger.info(`Slot ${slot} is empty on device`);
-        }
-      }).catch((error) => {
-        // Errors are already logged and stored in downloadState
-        logger.debug(`Download effect error for slot ${slot}: ${error}`);
+      loadSlotSample(slot, {
+        isSlotStillSelected: (s) => midiNoteState.selectedSample === s,
+        onSamples: (samples, sampleRate) => loadIntoEditor(samples, sampleRate, 'full')
       });
     });
   });
