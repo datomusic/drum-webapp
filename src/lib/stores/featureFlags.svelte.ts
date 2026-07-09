@@ -10,12 +10,15 @@ interface FeatureFlags {
   sampleRecorder: boolean;
   legacyFirmwareUpgrade: boolean;
   sysexFirmwareUpgrade: boolean;
+  /** Download the slot's sample from the device on pad selection (slow: ~1s, freezes the sequencer). When off, only the cached/factory sample is shown. */
+  downloadOnSelect: boolean;
 }
 
 const defaults: FeatureFlags = {
   sampleRecorder: false,
   legacyFirmwareUpgrade: false,
-  sysexFirmwareUpgrade: false
+  sysexFirmwareUpgrade: false,
+  downloadOnSelect: false
 };
 
 function loadFlags(): FeatureFlags {

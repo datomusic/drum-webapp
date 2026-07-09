@@ -19,6 +19,13 @@
   } from '$lib/services/audioAnalysis';
   import WaveformDisplay from './WaveformDisplay.svelte';
   import { FACTORY_SAMPLES } from '$lib/config/factorySamples';
+  import {
+    getCachedSample,
+    hasDeviceSample,
+    cacheDeviceSample,
+    preloadFactorySamples
+  } from '$lib/stores/sampleCache';
+  import { featureFlags } from '$lib/stores/featureFlags.svelte';
   import { createLogger } from '$lib/utils/logger';
 
   const logger = createLogger('SampleRecorder');
@@ -35,8 +42,11 @@
 
   let isDownloading = $derived(downloadState.status === 'downloading');
 
-  // Track which slot we last downloaded so we don't re-download on every trigger
-  let lastDownloadedSlot: number | null = null;
+  // Track which slot we last loaded so we don't reload on every trigger
+  let lastLoadedSlot: number | null = null;
+
+  // Warm the cache so pad selection can show factory audio instantly
+  preloadFactorySamples();
 
   let recordedDurationMs = $derived(
     capture.recorded ? Math.floor((capture.recorded.length / capture.sampleRate) * 1000) : 0
@@ -151,6 +161,8 @@
       });
 
       await sampleUploadStore.quickUpload(file, slot);
+      // The device now holds exactly this audio — no need to download it back
+      cacheDeviceSample(slot, selection, 44100);
       logger.info(`Saved recording to slot ${slot}`);
     } catch (error) {
       errorMessage = error instanceof Error ? error.message : String(error);
@@ -229,43 +241,54 @@
     capture.play(getSelection());
   }
 
-  // Auto-download sample from device when a new note is selected
+  /** Put a sample buffer into the editor: resample to the capture rate, reset gain, trim to the full (max 1s) sample. */
+  function loadIntoEditor(samples: Float32Array, sampleRate: number) {
+    if (sampleRate !== capture.sampleRate) {
+      samples = resampleLinear(samples, sampleRate, capture.sampleRate);
+    }
+    capture.load(samples, capture.sampleRate);
+    gainDb = 0;
+    const durationMs = Math.floor((samples.length / capture.sampleRate) * 1000);
+    trimStartMs = 0;
+    trimEndMs = Math.min(durationMs, MAX_SELECTION_S * 1000);
+  }
+
+  // Load the slot's sample into the editor when a new note is selected.
+  // Cached audio (device download, upload, or preloaded factory sample) is
+  // shown instantly; the ~1s device download only runs when the
+  // 'downloadOnSelect' feature flag is on and we don't already hold the
+  // device's audio for this slot.
   $effect(() => {
     const slot = midiNoteState.selectedSample;
     if (slot === null) return;
 
-    // Only download when the slot actually changed
-    if (slot === lastDownloadedSlot) return;
-    lastDownloadedSlot = slot;
+    // Only load when the slot actually changed
+    if (slot === lastLoadedSlot) return;
+    lastLoadedSlot = slot;
 
-    // Don't download while recording or saving
+    // Don't disturb an active recording or save
     untrack(() => {
       if (capture.status === 'recording' || isSaving) return;
 
-      // Reset capture to prepare for downloaded sample
       capture.reset();
       errorMessage = null;
 
+      const cached = getCachedSample(slot);
+      if (cached) {
+        loadIntoEditor(cached.samples, cached.sampleRate);
+        logger.info(`Loaded ${cached.source} sample for slot ${slot} from cache`);
+      }
+
+      if (!featureFlags.downloadOnSelect || hasDeviceSample(slot)) return;
+
       downloadSample(slot).then((result) => {
         if (result && result.samples.length > 0) {
-          // Resample if the capture's audio context uses a different rate
-          let samples = result.samples;
-          let rate = result.sampleRate;
-          if (rate !== capture.sampleRate) {
-            samples = resampleLinear(samples, rate, capture.sampleRate);
-            rate = capture.sampleRate;
+          cacheDeviceSample(slot, result.samples, result.sampleRate);
+          // Only load if the user hasn't moved on to another slot meanwhile
+          if (midiNoteState.selectedSample === slot) {
+            loadIntoEditor(result.samples, result.sampleRate);
+            logger.info(`Loaded downloaded sample for slot ${slot} into buffer`);
           }
-
-          // Load the downloaded sample into the capture buffer
-          capture.load(samples, rate);
-          gainDb = 0;
-
-          // Set trim to full sample
-          const durationMs = Math.floor((samples.length / rate) * 1000);
-          trimStartMs = 0;
-          trimEndMs = Math.min(durationMs, MAX_SELECTION_S * 1000);
-
-          logger.info(`Loaded downloaded sample for slot ${slot} into buffer`);
         } else if (downloadState.status === 'empty') {
           logger.info(`Slot ${slot} is empty on device`);
         }
