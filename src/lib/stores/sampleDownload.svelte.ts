@@ -52,6 +52,24 @@ const downloadState = $state<DownloadState>({
 
 let abortController: AbortController | null = null;
 
+/** Delay before requesting a dump so the device can finish playing the sample before the transfer freezes it. */
+const PRE_DUMP_DELAY_MS = 1000;
+
+/** Abortable delay; rejects with an AbortError when the signal fires. */
+function delay(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => resolve(), ms);
+    signal.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timer);
+        reject(new DOMException('Aborted', 'AbortError'));
+      },
+      { once: true }
+    );
+  });
+}
+
 /**
  * Download a sample from the device for the given slot.
  *
@@ -92,6 +110,9 @@ async function downloadSample(slot: number): Promise<SdsDownloadResult | null> {
   const signal = abortController.signal;
 
   try {
+    // Let the device finish playing back the sample before the dump freezes it
+    await delay(PRE_DUMP_DELAY_MS, signal);
+
     initializeSdsListener();
 
     const result = await receiveSampleViaSds(
