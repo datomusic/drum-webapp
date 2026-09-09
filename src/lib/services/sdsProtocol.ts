@@ -5,11 +5,16 @@
  * to the Dato DRUM device. It handles:
  * - Dump header creation
  * - Data packet encoding with checksum validation
- * - ACK/NAK handshaking with timeout fallback
+ * - ACK/NAK handshaking with per-packet retransmission
  * - Progress monitoring
+ *
+ * Mirrors the transfer logic of tools/drumtool/drumtool.js in the firmware
+ * repository. Roughly 2% of USB MIDI packets are lost in flight, and the
+ * device NAKs and discards anything out of sequence, so a lost packet must be
+ * retransmitted: advancing past it loses the rest of the sample.
  */
 
-import { midiState } from '$lib/stores/midi.svelte';
+import { midiState, addSysexListener } from '$lib/stores/midi.svelte';
 import { createLogger } from '$lib/utils/logger';
 
 const logger = createLogger('SDS');
@@ -29,8 +34,12 @@ const SDS_CANCEL = 0x7D;
 const SDS_WAIT = 0x7C;
 
 // Timeouts
-const PACKET_TIMEOUT = 20;   // 20ms per packet as per SDS spec
-const HEADER_TIMEOUT = 2000; // 2 second timeout for dump header
+const PACKET_TIMEOUT = 500;         // Per-attempt wait for a packet's ACK
+const PACKET_RETRY_WINDOW = 5000;   // Give up on a packet after this long without any response
+const HEADER_TIMEOUT = 2000;        // Wait for the dump header's ACK
+const HEADER_ATTEMPTS = 3;          // Header sends before assuming a non-handshaking device
+const WAIT_RESPONSE_TIMEOUT = 30000; // Deadline for the follow-up after a WAIT
+const OPEN_LOOP_PACKET_DELAY = 10;  // Pacing between packets when the device never ACKs
 
 // Response handling
 interface SdsResponse {
@@ -43,7 +52,7 @@ let pendingResponse: {
   timer: number;
 } | null = null;
 
-let messageHandler: ((this: MIDIInput, ev: MIDIMessageEvent) => any) | null = null;
+let unsubscribeSysex: (() => void) | null = null;
 
 /**
  * Check if a MIDI message is an SDS message
@@ -57,55 +66,44 @@ function isSdsMessage(message: Uint8Array): boolean {
 }
 
 /**
- * Handle incoming MIDI messages for SDS responses
+ * Handle incoming SysEx messages for SDS responses
  */
-function handleMidiMessage(this: MIDIInput, event: MIDIMessageEvent): void {
-  const message = event.data;
-
-  if (!message) {
+function handleSysexMessage(message: Uint8Array): void {
+  if (!isSdsMessage(message)) {
     return;
   }
 
-  if (isSdsMessage(message)) {
-    const messageType = message[3];
-    const packetNum = message.length > 4 ? message[4] : 0;
+  const messageType = message[3];
+  const packetNum = message.length > 4 ? message[4] : 0;
 
-    // Handle responses during handshaking
-    if (pendingResponse && (messageType === SDS_ACK || messageType === SDS_NAK ||
-                           messageType === SDS_WAIT || messageType === SDS_CANCEL)) {
-      clearTimeout(pendingResponse.timer);
+  if (pendingResponse && (messageType === SDS_ACK || messageType === SDS_NAK ||
+                          messageType === SDS_WAIT || messageType === SDS_CANCEL)) {
+    clearTimeout(pendingResponse.timer);
 
-      let type: 'ack' | 'nak' | 'wait' | 'cancel';
-      if (messageType === SDS_ACK) type = 'ack';
-      else if (messageType === SDS_NAK) type = 'nak';
-      else if (messageType === SDS_WAIT) type = 'wait';
-      else type = 'cancel';
+    let type: 'ack' | 'nak' | 'wait' | 'cancel';
+    if (messageType === SDS_ACK) type = 'ack';
+    else if (messageType === SDS_NAK) type = 'nak';
+    else if (messageType === SDS_WAIT) type = 'wait';
+    else type = 'cancel';
 
-      pendingResponse.resolve({ type, packet: packetNum });
-      pendingResponse = null;
-    }
+    pendingResponse.resolve({ type, packet: packetNum });
+    pendingResponse = null;
   }
 }
 
 /**
  * Initialize SDS message listener
+ *
+ * Registers with the MIDI store's SysEx dispatch rather than adding a second
+ * listener to the input port: the store owns the port's `onmidimessage`
+ * handler, which is what implicitly opens the port.
  */
 export function initializeSdsListener(): void {
-  const { selectedInput } = midiState;
-
-  if (!selectedInput) {
-    logger.warn('No MIDI input selected for SDS listener');
-    return;
+  if (unsubscribeSysex) {
+    unsubscribeSysex();
   }
 
-  // Remove existing handler if any
-  if (messageHandler) {
-    selectedInput.removeEventListener('midimessage', messageHandler);
-  }
-
-  // Add new handler
-  messageHandler = handleMidiMessage;
-  selectedInput.addEventListener('midimessage', messageHandler);
+  unsubscribeSysex = addSysexListener(handleSysexMessage);
 
   logger.info('SDS message listener initialized');
 }
@@ -114,11 +112,9 @@ export function initializeSdsListener(): void {
  * Clean up SDS message listener
  */
 export function cleanupSdsListener(): void {
-  const { selectedInput } = midiState;
-
-  if (selectedInput && messageHandler) {
-    selectedInput.removeEventListener('midimessage', messageHandler);
-    messageHandler = null;
+  if (unsubscribeSysex) {
+    unsubscribeSysex();
+    unsubscribeSysex = null;
   }
 }
 
@@ -148,6 +144,10 @@ function waitForResponse(timeout: number, packetNum: number = 0): Promise<SdsRes
 
     pendingResponse = { resolve, timer };
   });
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 /**
@@ -268,6 +268,58 @@ function createDataPacket(packetNum: number, pcmData: Uint8Array, offset: number
 }
 
 /**
+ * Send one data packet and wait for its ACK, retransmitting on timeout or NAK.
+ *
+ * The device re-ACKs a retransmission of the previous packet without rewriting
+ * its data, so resending after a lost packet or a lost ACK is safe.
+ */
+async function deliverPacket(
+  packet: number[],
+  expectedPacketNum: number
+): Promise<'ack' | 'cancel' | 'failed'> {
+  sendSdsMessage(packet);
+  let deadline = Date.now() + PACKET_RETRY_WINDOW;
+  let responseTimeout = PACKET_TIMEOUT;
+
+  while (Date.now() < deadline) {
+    const response = await waitForResponse(responseTimeout, expectedPacketNum);
+    responseTimeout = PACKET_TIMEOUT;
+
+    switch (response.type) {
+      case 'ack':
+        if (response.packet === expectedPacketNum) {
+          return 'ack';
+        }
+        // Stale ACK for an earlier packet we retransmitted; keep waiting.
+        break;
+      case 'nak':
+        if (response.packet !== expectedPacketNum) {
+          // Stale NAK for a duplicate of an earlier packet; keep waiting.
+          break;
+        }
+        logger.debug(`Packet ${expectedPacketNum} NAK - retrying`);
+        sendSdsMessage(packet);
+        break;
+      case 'wait':
+        // Device is busy (e.g. flash housekeeping): hold off retransmission
+        // and give it a long window for the follow-up response.
+        logger.debug(`Packet ${expectedPacketNum} WAIT - device is busy`);
+        responseTimeout = WAIT_RESPONSE_TIMEOUT;
+        deadline = Date.now() + WAIT_RESPONSE_TIMEOUT;
+        break;
+      case 'cancel':
+        return 'cancel';
+      default: // timeout: the packet or its ACK was lost in transit
+        logger.debug(`Packet ${expectedPacketNum} timeout - retransmitting`);
+        sendSdsMessage(packet);
+        break;
+    }
+  }
+
+  return 'failed';
+}
+
+/**
  * Progress callback type
  */
 export interface SdsProgress {
@@ -302,23 +354,29 @@ export async function transferSampleViaSds(
   const totalPackets = Math.ceil(pcmData.length / 80); // 40 samples * 2 bytes per packet
 
   try {
-    // Step 1: Send Dump Header
+    // Step 1: Send Dump Header. Resending it is idempotent - the device
+    // reopens the target file and resets its expected packet number - so a
+    // lost header or lost ACK is simply retried before falling back to an
+    // open-loop transfer.
     logger.debug('Sending dump header...');
     const header = createDumpHeader(sampleNumber, 16, sampleRate, pcmData.length);
-    sendSdsMessage(header);
 
     if (onProgress) {
       onProgress({ stage: 'header', percentage: 0, handshaking: false });
     }
 
-    const headerResponse = await waitForResponse(HEADER_TIMEOUT);
-    if (headerResponse.type === 'nak') {
-      logger.debug('Header NAK received, retrying...');
+    let headerResponse: SdsResponse = { type: 'timeout', packet: 0 };
+    for (let attempt = 1; attempt <= HEADER_ATTEMPTS; attempt++) {
       sendSdsMessage(header);
-      const retryResponse = await waitForResponse(HEADER_TIMEOUT);
-      if (retryResponse.type !== 'ack' && retryResponse.type !== 'timeout') {
-        throw new Error('Header rejected twice');
+      headerResponse = await waitForResponse(HEADER_TIMEOUT);
+
+      if (headerResponse.type === 'ack') {
+        break;
       }
+      if (headerResponse.type === 'cancel') {
+        throw new Error('Device cancelled transfer - storage may be full');
+      }
+      logger.debug(`Header ${headerResponse.type} (attempt ${attempt}/${HEADER_ATTEMPTS})`);
     }
 
     let handshaking = headerResponse.type === 'ack';
@@ -332,54 +390,28 @@ export async function transferSampleViaSds(
 
     while (offset < pcmData.length) {
       const packet = createDataPacket(packetNum & 0x7F, pcmData, offset);
-      sendSdsMessage(packet);
 
       if (handshaking) {
-        const response = await waitForResponse(PACKET_TIMEOUT, packetNum & 0x7F);
+        const status = await deliverPacket(packet, packetNum & 0x7F);
 
-        if (response.type === 'ack') {
-          successfulPackets++;
-          offset += 80; // Move to next 40 samples (80 bytes)
-          packetNum++;
-        } else if (response.type === 'nak') {
-          logger.debug(`Packet ${packetNum & 0x7F} NAK - retrying`);
-          continue; // Retry same packet
-        } else if (response.type === 'wait') {
-          logger.debug(`Packet ${packetNum & 0x7F} WAIT - device busy`);
-          // Wait for final response after WAIT
-          const finalResponse = await waitForResponse(30000, packetNum & 0x7F);
-          if (finalResponse.type === 'ack') {
-            successfulPackets++;
-            offset += 80;
-            packetNum++;
-          } else if (finalResponse.type === 'nak') {
-            continue; // Retry same packet
-          } else if (finalResponse.type === 'cancel') {
-            throw new Error('Device cancelled transfer - storage may be full');
-          } else {
-            // Timeout after WAIT - assume non-handshaking
-            logger.debug('Timeout after WAIT - switching to non-handshaking');
-            successfulPackets++;
-            offset += 80;
-            packetNum++;
-            handshaking = false;
-          }
-        } else if (response.type === 'cancel') {
+        if (status === 'cancel') {
           throw new Error('Device cancelled transfer - storage may be full');
-        } else {
-          // Timeout - assume non-handshaking mode
-          logger.debug(`Packet ${packetNum & 0x7F} timeout - switching to non-handshaking`);
-          successfulPackets++;
-          offset += 80;
-          packetNum++;
-          handshaking = false;
+        }
+        if (status !== 'ack') {
+          throw new Error(
+            `No response for packet ${packetNum & 0x7F} after ${PACKET_RETRY_WINDOW}ms`
+          );
         }
       } else {
-        // Non-handshaking mode - advance immediately
-        successfulPackets++;
-        offset += 80;
-        packetNum++;
+        // Non-handshaking mode (the device never ACKed the header): pace
+        // packets open-loop so the receiver can keep up.
+        sendSdsMessage(packet);
+        await delay(OPEN_LOOP_PACKET_DELAY);
       }
+
+      successfulPackets++;
+      offset += 80; // Move to next 40 samples (80 bytes)
+      packetNum++;
 
       // Update progress
       if (onProgress) {
