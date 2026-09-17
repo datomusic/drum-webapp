@@ -145,6 +145,75 @@ function parseFirmwareVersionReply(data: Uint8Array): string | null {
     return null;
 }
 
+function handleInputMessage(event: MIDIMessageEvent): void {
+    const data = event.data;
+    if (!data) {
+        logger.warn('Received MIDI message with no data');
+        return;
+    }
+
+    const statusByte = data[0];
+
+    // Filter out realtime messages (they're very frequent and noisy)
+    if (isMidiRealtimeMessage(statusByte)) {
+        logger.debug(`MIDI realtime message: ${statusByte.toString(16)}`, 'realtime');
+        return;
+    }
+
+    // Log other messages with appropriate filtering
+    if (isMidiSystemMessage(statusByte)) {
+        logger.debug('MIDI system message: ' + Array.from(data).map((b) => b.toString(16).padStart(2, '0')).join(' '), 'midi');
+    } else {
+        logger.debug('MIDI message: ' + Array.from(data).map((b) => b.toString(16).padStart(2, '0')).join(' '), 'midi');
+    }
+
+    if (data[0] === SYSEX_START) {
+        logger.debug('Detected SysEx message, parsing...', 'sysex');
+        const fwVersion = parseFirmwareVersionReply(data);
+        if (fwVersion) {
+            logger.info('Successfully parsed firmware version: ' + fwVersion, 'firmware');
+            _setFirmwareVersion(fwVersion);
+        } else {
+            logger.debug('Failed to parse firmware version from SysEx', 'sysex');
+        }
+        for (const listener of sysexListeners) {
+            listener(data);
+        }
+    } else {
+        logger.debug('Regular MIDI message, handling as note...', 'midi');
+        handleMidiNoteMessage(data);
+    }
+}
+
+// Find the input port belonging to a given output: same port name first, then
+// any input whose name looks like a DRUM.
+function findInputFor(output: MIDIOutput, inputs: MIDIInputMap): MIDIInput | undefined {
+    const byName = Array.from(inputs.values()).find((inputPort) => inputPort.name === output.name);
+    if (byName) {
+        return byName;
+    }
+
+    return Array.from(inputs.values()).find((inputPort) => {
+        const inputNameLower = inputPort.name?.toLowerCase();
+        return inputNameLower && DRUM_DEVICE_FILTERS_LOWER.some((filter) => inputNameLower.includes(filter));
+    });
+}
+
+function attachInput(input: MIDIInput): void {
+    input.onmidimessage = handleInputMessage;
+
+    // Assigning onmidimessage opens the port implicitly, but that open is
+    // asynchronous and can fail, leaving a port that silently never delivers.
+    // Opening explicitly surfaces the failure and reports the resulting state.
+    input.open().then(
+        (port) => logger.info(`Listening to MIDI input: ${port.name} (connection: ${port.connection})`),
+        (error) => logger.error(
+            `Failed to open MIDI input ${input.name}: ` +
+            (error instanceof Error ? error.message : String(error))
+        )
+    );
+}
+
 function handleMidiNoteMessage(data: Uint8Array): void {
     const [statusCode, noteNumber, velocity] = data;
     const status = statusCode & MIDI_STATUS_MASK;
@@ -267,58 +336,15 @@ function connectDevice(deviceId: string) {
         let input: MIDIInput | undefined;
 
         if (output) {
-            input = Array.from(currentInputs.values()).find((inputPort) => inputPort.name === output.name);
-
-            if (!input) {
-                input = Array.from(currentInputs.values()).find((inputPort) => {
-                    const inputNameLower = inputPort.name?.toLowerCase();
-                    return inputNameLower && DRUM_DEVICE_FILTERS_LOWER.some((filter) => inputNameLower.includes(filter));
-                });
-            }
+            input = findInputFor(output, currentInputs);
 
             if (input) {
-                input.onmidimessage = (event) => {
-                    const data = event.data;
-                    if (!data) {
-                        logger.warn('Received MIDI message with no data');
-                        return;
-                    }
-
-                    const statusByte = data[0];
-
-                    // Filter out realtime messages (they're very frequent and noisy)
-                    if (isMidiRealtimeMessage(statusByte)) {
-                        logger.debug(`MIDI realtime message: ${statusByte.toString(16)}`, 'realtime');
-                        return;
-                    }
-
-                    // Log other messages with appropriate filtering
-                    if (isMidiSystemMessage(statusByte)) {
-                        logger.debug('MIDI system message: ' + Array.from(data).map((b) => b.toString(16).padStart(2, '0')).join(' '), 'midi');
-                    } else {
-                        logger.debug('MIDI message: ' + Array.from(data).map((b) => b.toString(16).padStart(2, '0')).join(' '), 'midi');
-                    }
-
-                    if (data[0] === SYSEX_START) {
-                        logger.debug('Detected SysEx message, parsing...', 'sysex');
-                        const fwVersion = parseFirmwareVersionReply(data);
-                        if (fwVersion) {
-                            logger.info('Successfully parsed firmware version: ' + fwVersion, 'firmware');
-                            _setFirmwareVersion(fwVersion);
-                        } else {
-                            logger.debug('Failed to parse firmware version from SysEx', 'sysex');
-                        }
-                        for (const listener of sysexListeners) {
-                            listener(data);
-                        }
-                    } else {
-                        logger.debug('Regular MIDI message, handling as note...', 'midi');
-                        handleMidiNoteMessage(data);
-                    }
-                };
-                logger.info('Listening to MIDI input: ' + input.name);
+                attachInput(input);
             } else {
-                logger.warn('No matching MIDI input found for selected output device.');
+                logger.warn(
+                    'No matching MIDI input found for selected output device. ' +
+                    'Will retry when MIDI ports change.'
+                );
             }
             _setDeviceConnected(output, input || null);
             logger.info('Connected to MIDI device: ' + output.name);
