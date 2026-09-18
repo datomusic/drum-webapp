@@ -10,6 +10,8 @@
     durationMs?: number;
     /** Length of the live scrolling view in seconds */
     liveWindowS?: number;
+    onTrimStartChange?: (ms: number) => void;
+    onTrimEndChange?: (ms: number) => void;
   }
 
   let {
@@ -18,10 +20,60 @@
     trimStartMs = 0,
     trimEndMs = 0,
     durationMs = 0,
-    liveWindowS = 1
+    liveWindowS = 1,
+    onTrimStartChange,
+    onTrimEndChange
   }: Props = $props();
 
   let canvasEl: HTMLCanvasElement;
+  let dragging: 'start' | 'end' | null = $state(null);
+  let hovering = $state(false);
+
+  const HANDLE_HIT_PX = 16;
+
+  function eventToMs(event: PointerEvent): number {
+    const rect = canvasEl.getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+    return (x / rect.width) * durationMs;
+  }
+
+  function nearestHandle(event: PointerEvent): 'start' | 'end' | null {
+    const rect = canvasEl.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const startX = (trimStartMs / durationMs) * rect.width;
+    const endX = (trimEndMs / durationMs) * rect.width;
+    const dStart = Math.abs(x - startX);
+    const dEnd = Math.abs(x - endX);
+    if (Math.min(dStart, dEnd) > HANDLE_HIT_PX) return null;
+    return dStart <= dEnd ? 'start' : 'end';
+  }
+
+  function onPointerDown(event: PointerEvent) {
+    if (capture.status !== 'recorded' || durationMs <= 0) return;
+    const handle = nearestHandle(event);
+    if (!handle) return;
+    dragging = handle;
+    canvasEl.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  }
+
+  function onPointerMove(event: PointerEvent) {
+    if (capture.status !== 'recorded' || durationMs <= 0) return;
+    if (dragging) {
+      const ms = eventToMs(event);
+      if (dragging === 'start') onTrimStartChange?.(ms);
+      else onTrimEndChange?.(ms);
+    } else {
+      hovering = nearestHandle(event) !== null;
+    }
+  }
+
+  function onPointerUp(event: PointerEvent) {
+    if (dragging) {
+      canvasEl.releasePointerCapture(event.pointerId);
+      dragging = null;
+    }
+  }
 
   onMount(() => {
     let animationFrame = requestAnimationFrame(draw);
@@ -61,6 +113,11 @@
         ctx.fillStyle = '#ffd200';
         ctx.fillRect(startX - 2 * dpr, 0, 4 * dpr, height);
         ctx.fillRect(endX - 2 * dpr, 0, 4 * dpr, height);
+        ctx.beginPath();
+        ctx.arc(startX, midY, 8 * dpr, 0, Math.PI * 2);
+        ctx.moveTo(endX + 8 * dpr, midY);
+        ctx.arc(endX, midY, 8 * dpr, 0, Math.PI * 2);
+        ctx.fill();
       } else if (capture.status === 'monitoring' || capture.status === 'recording') {
         // Live scrolling view of the recent past
         drawWaveform(ctx, capture.readLiveWindow(liveWindowS), 1, width, height, dpr);
@@ -120,4 +177,12 @@
   }
 </script>
 
-<canvas bind:this={canvasEl} class="h-40 min-w-0 flex-1 rounded-lg"></canvas>
+<canvas
+  bind:this={canvasEl}
+  class="h-40 min-w-0 flex-1 touch-none rounded-lg"
+  class:cursor-ew-resize={dragging !== null || hovering}
+  onpointerdown={onPointerDown}
+  onpointermove={onPointerMove}
+  onpointerup={onPointerUp}
+  onpointercancel={onPointerUp}
+></canvas>

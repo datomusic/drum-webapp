@@ -1,0 +1,37 @@
+/**
+ * Factory sample filenames by MIDI note number, served from /factory_kit/.
+ */
+export const FACTORY_SAMPLES: Record<number, string> = {
+  30: '30_kick_disco.wav',
+  31: '31_kick_pattern.wav',
+  32: '32_kick_big.wav',
+  33: '33_kick_cr78.wav',
+  34: '34_kick_808_long.wav',
+  35: '35_kick_gabber.wav',
+  36: '36_kick_808.wav',
+  37: '37_kick_deep.wav',
+  38: '38_snare_cr78.wav',
+  39: '39_snare_808.wav',
+  40: '40_snare_disco.wav',
+  41: '41_snare_straw.wav',
+  42: '42_snare_garage.wav',
+  43: '43_snare_heimzap.wav',
+  44: '44_snare_machine.wav',
+  45: '45_snare_backbone.wav',
+  46: '46_var_clap.wav',
+  47: '47_var_pop.wav',
+  48: '48_var_wood.wav',
+  49: '49_var_snap.wav',
+  50: '50_var_sepp.wav',
+  51: '51_var_pow.wav',
+  52: '52_var_ah.wav',
+  53: '53_var_rim.wav',
+  54: '54_hat_cr78.wav',
+  55: '55_hat_808.wav',
+  56: '56_hat_maraca.wav',
+  57: '57_hat_909_open.wav',
+  58: '58_hat_shaker.wav',
+  59: '59_hat_electro.wav',
+  60: '60_hat_second.wav',
+  61: '61_hat_backbone.wav'
+};

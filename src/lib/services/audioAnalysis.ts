@@ -128,6 +128,46 @@ export function resampleLinear(
 }
 
 /**
+ * Decode an audio file to mono, optionally resampled to a target sample
+ * rate. Downmixes by averaging all channels (2-channel behavior matches
+ * the original stereo-to-mono average). Always closes the AudioContext it
+ * creates.
+ */
+export async function decodeToMono(
+  arrayBuffer: ArrayBuffer,
+  targetSampleRate?: number
+): Promise<{ samples: Float32Array; sampleRate: number }> {
+  const ctx = new AudioContext();
+  try {
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+    let samples: Float32Array;
+    if (audioBuffer.numberOfChannels === 1) {
+      samples = audioBuffer.getChannelData(0);
+    } else {
+      const channels = Array.from({ length: audioBuffer.numberOfChannels }, (_, ch) =>
+        audioBuffer.getChannelData(ch)
+      );
+      samples = new Float32Array(audioBuffer.length);
+      for (let i = 0; i < samples.length; i++) {
+        let sum = 0;
+        for (const channel of channels) sum += channel[i];
+        samples[i] = sum / channels.length;
+      }
+    }
+
+    let sampleRate = audioBuffer.sampleRate;
+    if (targetSampleRate !== undefined && sampleRate !== targetSampleRate) {
+      samples = resampleLinear(samples, sampleRate, targetSampleRate);
+      sampleRate = targetSampleRate;
+    }
+
+    return { samples, sampleRate };
+  } finally {
+    await ctx.close();
+  }
+}
+
+/**
  * Convert float samples in [-1, 1] to 16-bit little-endian PCM,
  * clamping out-of-range values.
  */
